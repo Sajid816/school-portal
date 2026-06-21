@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { db, secondaryAuth } from '../firebase';
+import { db, auth } from "../firebase";
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -38,7 +38,7 @@ function Admin() {
       await setDoc(doc(db, "users", newUid), userProfile);
 
       // 4. Send the password configuration email
-      await sendPasswordResetEmail(secondaryAuth, email);
+      await sendPasswordResetEmail(auth, email);
 
       setMessage(`✅ Account created. Setup email sent to ${email}.`);
       e.target.reset();
