@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { db, auth } from "../firebase";
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { db, auth, secondaryAuth } from "../firebase"; // Ensure secondaryAuth is imported here
+import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 function Admin() {
   const [message, setMessage] = useState('');
