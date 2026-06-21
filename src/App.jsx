@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -12,8 +13,14 @@ import Admin from './pages/Admin';
 
 function Navbar() {
   const location = useLocation();
-  const uid = localStorage.getItem('uid');
-  const role = localStorage.getItem('role');
+  const [auth, setAuth] = useState({ uid: localStorage.getItem('uid'), role: localStorage.getItem('role') });
+
+  // Listens for storage changes to update navbar instantly
+  useEffect(() => {
+    const handleStorageChange = () => setAuth({ uid: localStorage.getItem('uid'), role: localStorage.getItem('role') });
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -29,24 +36,16 @@ function Navbar() {
       <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>Gallery</Link>
       <Link to="/contact" className={location.pathname === '/contact' ? 'active' : ''}>Contact</Link>
       
-      {uid && role === 'student' && (
+      {auth.uid && auth.role === 'student' && (
         <>
           <Link to="/results" className={location.pathname === '/results' ? 'active' : ''}>My Results</Link>
           <Link to="/info" className={location.pathname === '/info' ? 'active' : ''}>My Info</Link>
         </>
       )}
 
-      {uid && role === 'teacher' && (
-        <Link to="/teachers" className={location.pathname === '/teachers' ? 'active' : ''}>Teacher Dashboard</Link>
-      )}
-
-      {uid && role === 'admin' && (
-        <Link to="/admin" className={location.pathname === '/admin' ? 'active' : ''}>Admin Panel</Link>
-      )}
-
-      {uid && (
-        <button onClick={handleLogout} style={{ color: '#d9534f', marginLeft: '15px', fontWeight: 'bold', cursor: 'pointer', border: 'none', background: 'transparent' }}>Logout</button>
-      )}
+      {auth.uid && auth.role === 'teacher' && <Link to="/teachers" className={location.pathname === '/teachers' ? 'active' : ''}>Teacher Dashboard</Link>}
+      {auth.uid && auth.role === 'admin' && <Link to="/admin" className={location.pathname === '/admin' ? 'active' : ''}>Admin Panel</Link>}
+      {auth.uid && <button onClick={handleLogout} style={{ color: '#d9534f', marginLeft: '15px', fontWeight: 'bold', cursor: 'pointer', border: 'none', background: 'transparent' }}>Logout</button>}
     </nav>
   );
 }
