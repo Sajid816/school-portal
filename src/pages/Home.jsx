@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { auth, db } from '../firebase'; // Added db import
+import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore'; // Added Firestore imports
+import { doc, getDoc } from 'firebase/firestore';
 
 function Home() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Checks if user is already logged in when the page loads
   useEffect(() => {
     const savedUid = localStorage.getItem('uid');
     const savedRole = localStorage.getItem('role');
     
     if (savedUid && savedRole) {
       if (savedRole === 'student') window.location.href = '/info';
-      if (savedRole === 'teacher') window.location.href = '/teachers';
+      else if (savedRole === 'teacher') window.location.href = '/teachers';
+      else if (savedRole === 'admin') window.location.href = '/admin';
     }
   }, []);
 
@@ -27,31 +27,27 @@ function Home() {
     const password = e.target.password.value;
 
     try {
-      // 1. Authenticate user credentials
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // 2. Fetch the user's true role from the database
       const docRef = doc(db, "users", uid);
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
         const realRole = docSnap.data().role; 
-
-        // 3. Save the authoritative data to local storage
         localStorage.setItem('uid', uid);
         localStorage.setItem('role', realRole);
         
-        // 4. Redirect automatically based on database role
         if (realRole === 'student') {
           window.location.href = '/info';
         } else if (realRole === 'teacher') {
           window.location.href = '/teachers';
+        } else if (realRole === 'admin') {
+          window.location.href = '/admin';
         } else {
           setError("Account role not recognized in database.");
         }
       } else {
-        // If they authenticated but have no database entry
         setError("No database profile found for this user.");
       }
       
