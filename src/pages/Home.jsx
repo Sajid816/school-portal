@@ -21,6 +21,7 @@ function Home() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     try {
       const userCredential = await signInWithEmailAndPassword(auth, e.target.email.value, e.target.password.value);
       const docSnap = await getDoc(doc(db, "users", userCredential.user.uid));
@@ -40,29 +41,28 @@ function Home() {
 
   return (
     <div className="home-container">
-      {/* News Ticker - Visible to everyone */}
       <div className="news-ticker">
         <marquee>Latest: Admission for 2026 is now open! | Exam schedules have been updated.</marquee>
       </div>
 
       {!isLoggedIn ? (
-        // Login View
         <div className="login-wrapper">
           <div className="login-card">
             <h1>Portal Login</h1>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {error && <p style={{ color: '#d9534f', fontWeight: 'bold' }}>{error}</p>}
             <form onSubmit={handleLogin}>
-              <input type="email" name="email" placeholder="Email" required />
-              <input type="password" name="password" placeholder="Password" required />
-              <button type="submit" disabled={isLoading}>{isLoading ? "Logging in..." : "Log In"}</button>
+              <input type="email" name="email" placeholder="Email" className="glass-input" required />
+              <input type="password" name="password" placeholder="Password" className="glass-input" required />
+              <button type="submit" className="login-btn" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Log In"}
+              </button>
             </form>
           </div>
         </div>
       ) : (
-        // Post-Login View
-        <div className="dashboard-view">
+        <div className="dashboard-view" style={{ textAlign: 'center', padding: '20px' }}>
           <h1>Welcome, {userRole}!</h1>
-          <img src="/school-building.jpg" alt="School" className="school-img" />
+          <img src="/school-building.jpg" alt="School" style={{ width: '100%', maxWidth: '600px', borderRadius: '8px' }} />
           <div className="updates-section">
             <h3>Recent Notices</h3>
             <ul>
