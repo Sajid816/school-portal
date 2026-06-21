@@ -1,12 +1,7 @@
 import { useState } from 'react';
-// Combine all your firebase imports into ONE line:
 import { db, auth, secondaryAuth } from "../firebase";
-// Combine all your firebase/auth imports into ONE line:
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-// Combine all your firebase/firestore imports into ONE line:
 import { doc, setDoc } from 'firebase/firestore';
-  // ... rest of your code ...
-
 
 function Admin() {
   const [message, setMessage] = useState('');
@@ -20,17 +15,14 @@ function Admin() {
     const email = e.target.email.value.trim();
     const name = e.target.name.value.trim();
     const role = e.target.role.value;
-    const identifier = e.target.identifier.value.trim(); // Roll or Employee ID
+    const identifier = e.target.identifier.value.trim(); 
     
-    // Generate a random 16-character temporary password
     const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
 
     try {
-      // 1. Create the user on the secondary auth instance (Admin stays logged in)
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, tempPassword);
       const newUid = userCredential.user.uid;
 
-      // 2. Prepare the database profile
       const userProfile = {
         Email: email,
         Name: name,
@@ -39,10 +31,7 @@ function Admin() {
         status: "active"
       };
 
-      // 3. Save the profile to Firestore
       await setDoc(doc(db, "users", newUid), userProfile);
-
-      // 4. Send the password configuration email
       await sendPasswordResetEmail(auth, email);
 
       setMessage(`✅ Account created. Setup email sent to ${email}.`);
