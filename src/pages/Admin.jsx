@@ -52,42 +52,47 @@ function Admin() {
   };
 
   return (
-    <div style={{ padding: '40px', color: 'white' }}>
-      <h1>Admin Panel</h1>
-      
-      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '40px' }}>
-        <h3>Bulk Upload</h3>
-        <p>Ensure your CSV has columns: <b>email, fullName, role, studentId, class, section</b></p>
-        <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} style={{ color: '#000' }} />
-        <button onClick={processCSV} className="login-btn">Upload & Sync</button>
-      </div>
-
-      <div className="glass-notice-box" style={{ color: '#333', padding: '20px' }}>
-        <h3>Active Students</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-              <th>Name</th><th>Student ID</th><th>Class</th><th>Section</th><th>Email</th><th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map(s => (
-              <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{s.fullName}</td>
-                <td>{s.studentId}</td>
-                <td>{s.class}</td>
-                <td>{s.section}</td>
-                <td>{s.email}</td>
-                <td>
-                  <button onClick={() => deleteStudent(s.email)} className="delete-btn">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <h1>Admin Panel</h1>
+    
+    {/* Bulk Upload Section - Increased width */}
+    <div className="glass-notice-box" style={{ color: '#333', marginBottom: '40px', width: '100%', maxWidth: '800px' }}>
+      <h3>Bulk Upload</h3>
+      <p>Ensure your CSV has columns: <b>email, fullName, role, studentId, class, section</b></p>
+      <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} style={{ color: '#000', marginBottom: '10px' }} />
+      <button onClick={processCSV} className="login-btn">Upload & Sync</button>
     </div>
-  );
-}
 
+    {/* Student List Table - Increased width and padding */}
+    <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px' }}>
+      <h3>Active Students</h3>
+      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
+        <thead>
+          <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
+            <th style={{ padding: '10px' }}>Name</th>
+            <th style={{ padding: '10px' }}>Student ID</th>
+            <th style={{ padding: '10px' }}>Class</th>
+            <th style={{ padding: '10px' }}>Section</th>
+            <th style={{ padding: '10px' }}>Email</th>
+            <th style={{ padding: '10px' }}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {students.map(s => (
+            <tr key={s.id} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
+              <td style={{ padding: '15px' }}>{s.fullName}</td>
+              <td style={{ padding: '15px' }}>{s.studentId}</td>
+              <td style={{ padding: '15px' }}>{s.class}</td>
+              <td style={{ padding: '15px' }}>{s.section}</td>
+              <td style={{ padding: '15px' }}>{s.email}</td>
+              <td style={{ padding: '15px' }}>
+                <button onClick={() => deleteStudent(s.email)} className="delete-btn">Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
 export default Admin;
