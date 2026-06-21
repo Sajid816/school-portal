@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { db, auth } from "../firebase";
+// Combine all your firebase imports into ONE line:
+import { db, auth, secondaryAuth } from "../firebase";
+// Combine all your firebase/auth imports into ONE line:
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+// Combine all your firebase/firestore imports into ONE line:
 import { doc, setDoc } from 'firebase/firestore';
-import { db, auth, secondaryAuth } from "../firebase"; // Ensure secondaryAuth is imported here
-
+  // ... rest of your code ...
 
 
 function Admin() {
