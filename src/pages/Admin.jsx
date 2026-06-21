@@ -1,49 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { db } from '../firebase';
-import { doc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 function Admin() {
+  const [students, setStudents] = useState([]);
   const [file, setFile] = useState(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Fetch all students on load
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    const querySnapshot = await getDocs(collection(db, "users"));
+    const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setStudents(list);
+  };
+
+  const deleteStudent = async (email) => {
+    if (window.confirm("Delete this student permanently?")) {
+      await deleteDoc(doc(db, "users", email));
+      fetchStudents(); // Refresh the list
+    }
+  };
 
   const handleFileUpload = (e) => setFile(e.target.files[0]);
 
   const processCSV = () => {
-    if (!file) return alert("Please select a file first.");
-    setIsSyncing(true);
-
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
         const batch = writeBatch(db);
-        let count = 0;
-
-        results.data.forEach((row) => {
-          // Ensure every row has an 'email' to use as the unique ID
-          if (row.email) {
-            const userRef = doc(db, "users", row.email); // Using email as the Document ID
-            batch.set(userRef, {
-              fullName: row.fullName,
-              role: row.role,
-              studentId: row.studentId || "",
-              class: row.class || "",
-              email: row.email
-            });
-            count++;
-          }
+        results.data.forEach(row => {
+          if (row.email) batch.set(doc(db, "users", row.email), row);
         });
-
-        try {
-          await batch.commit();
-          alert(`Successfully synced ${count} students to the database!`);
-        } catch (err) {
-          console.error("Batch error:", err);
-          alert("Error syncing data. Check console.");
-        } finally {
-          setIsSyncing(false);
-        }
+        await batch.commit();
+        alert("Sync complete!");
+        fetchStudents(); // Refresh UI
       }
     });
   };
@@ -51,12 +46,32 @@ function Admin() {
   return (
     <div style={{ padding: '40px', color: 'white' }}>
       <h1>Admin Panel</h1>
-      <div className="glass-notice-box" style={{ padding: '30px', color: '#333' }}>
-        <h3>Bulk Student Upload</h3>
-        <input type="file" accept=".csv" onChange={handleFileUpload} style={{ color: '#000', marginBottom: '15px' }} />
-        <button onClick={processCSV} className="login-btn" disabled={isSyncing}>
-          {isSyncing ? "Syncing..." : "Upload & Sync"}
-        </button>
+      
+      {/* Upload Section */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '40px' }}>
+        <h3>Bulk Upload</h3>
+        <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <button onClick={processCSV} className="login-btn">Upload & Sync</button>
+      </div>
+
+      {/* Student List Table */}
+      <div className="glass-notice-box" style={{ color: '#333', padding: '20px' }}>
+        <h3>Active Students</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+          <thead>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
+              <th>Name</th><th>Class</th><th>Email</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {students.map(s => (
+              <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+                <td>{s.fullName}</td><td>{s.class}</td><td>{s.email}</td>
+                <td><button onClick={() => deleteStudent(s.email)} style={{ color: 'red' }}>Delete</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

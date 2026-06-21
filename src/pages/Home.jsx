@@ -4,88 +4,80 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 function Home() {
+  const [view, setView] = useState('login'); // 'login' or 'studentLookup'
+  const [studentId, setStudentId] = useState('');
+  const [studentData, setStudentData] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userData, setUserData] = useState({ loggedIn: false, role: '', name: '' });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Check login on load
   useEffect(() => {
-    const uid = localStorage.getItem('uid');
-    const role = localStorage.getItem('role');
-    const name = localStorage.getItem('name');
-    if (uid) setUserData({ loggedIn: true, role, name });
+    if (localStorage.getItem('uid')) setIsLoggedIn(true);
   }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const uid = userCredential.user.uid;
-      
-      const docSnap = await getDoc(doc(db, "users", uid));
-      
+      const userCredential = await signInWithEmailAndPassword(auth, e.target.email.value, e.target.password.value);
+      const docSnap = await getDoc(doc(db, "users", userCredential.user.uid));
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        // Use 'fullName' as the field name
-        const nameToSave = data.fullName || "User"; 
-        
-        localStorage.setItem('uid', uid);
-        localStorage.setItem('role', data.role);
-        localStorage.setItem('name', nameToSave);
-        
-        // Update state to trigger UI change
-        setUserData({ loggedIn: true, role: data.role, name: nameToSave });
-        
-        // Dispatch custom event so Navbar updates immediately
-        window.dispatchEvent(new Event('storage'));
-      } else {
-        setError("User profile not found.");
-        setIsLoading(false);
+        localStorage.setItem('uid', userCredential.user.uid);
+        localStorage.setItem('role', docSnap.data().role);
+        window.location.reload();
       }
-    } catch (err) {
-      console.error(err);
-      setError('Invalid email or password.');
-      setIsLoading(false);
-    }
+    } catch (err) { setError('Invalid email or password.'); } finally { setIsLoading(false); }
+  };
+
+  const handleStudentLookup = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, "users", studentId));
+      if (docSnap.exists()) {
+        setStudentData(docSnap.data());
+      } else {
+        alert("Student ID not found!");
+      }
+    } catch (err) { alert("Error searching database."); }
   };
 
   return (
-    <div className="home-container">
-      <div className="news-ticker">
-        <marquee>Latest: Admission for 2026 is now open! | Exam schedules have been updated.</marquee>
+    <div className="home-container" style={{ textAlign: 'center', padding: '20px' }}>
+      <div className="nav-tabs" style={{ marginBottom: '20px' }}>
+        <button onClick={() => setView('login')}>Teacher/Admin Login</button>
+        <button onClick={() => setView('studentLookup')}>Student Result Lookup</button>
       </div>
 
-      {!userData.loggedIn ? (
-        <div className="login-wrapper">
-          <div className="login-card">
+      {view === 'studentLookup' ? (
+        <div className="glass-notice-box" style={{ padding: '20px', maxWidth: '400px', margin: 'auto' }}>
+          <h2>Student Result Lookup</h2>
+          <input className="glass-input" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="Enter Student ID" />
+          <button onClick={handleStudentLookup} className="login-btn">View My Info</button>
+          {studentData && (
+            <div style={{ marginTop: '20px', textAlign: 'left' }}>
+              <p><strong>Name:</strong> {studentData.fullName}</p>
+              <p><strong>Result:</strong> {studentData.result || "N/A"}</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        !isLoggedIn ? (
+          <div className="login-card" style={{ maxWidth: '400px', margin: 'auto' }}>
             <h1>Portal Login</h1>
-            {error && <p style={{ color: '#d9534f', fontWeight: 'bold' }}>{error}</p>}
+            {error && <p style={{ color: 'red' }}>{error}</p>}
             <form onSubmit={handleLogin}>
               <input type="email" name="email" placeholder="Email" className="glass-input" required />
               <input type="password" name="password" placeholder="Password" className="glass-input" required />
-              <button type="submit" className="login-btn" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Log In"}
-              </button>
+              <button type="submit" className="login-btn" disabled={isLoading}>{isLoading ? "Logging in..." : "Log In"}</button>
             </form>
           </div>
-        </div>
-      ) : (
-        <div className="dashboard-view" style={{ textAlign: 'center', padding: '20px' }}>
-          <h1>Welcome, {userData.name}!</h1>
-          <img src="/school-building.jpg" alt="School" style={{ maxWidth: '600px', borderRadius: '8px', width: '100%' }} />
-          <div className="glass-notice-box">
-            <h3>Recent Notices</h3>
-            <ul>
-              <li>Library hours extended for finals week.</li>
-              <li>Annual sports day registrations are open.</li>
-            </ul>
+        ) : (
+          <div className="dashboard-view">
+            <h1>Welcome, {localStorage.getItem('role')}!</h1>
+            <p>You are logged in.</p>
           </div>
-        </div>
+        )
       )}
     </div>
   );
