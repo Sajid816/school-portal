@@ -9,7 +9,6 @@ function TeacherDashboard() {
   const [section, setSection] = useState('A');
   const [isUploading, setIsUploading] = useState(false);
 
-  // Classes extracted from the school document
   const classes = ["Playgroup", "Nursery", "KG", "KG 1", "KG 2", "KG 3", "KG 4", "KG 5"];
 
   const handleUpload = () => {
@@ -21,7 +20,6 @@ function TeacherDashboard() {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          // Store the entire parsed array in a single document named "Class_Section"
           const docId = `${selectedClass}_${section}`;
           await setDoc(doc(db, "results", docId), {
             class: selectedClass,
@@ -55,13 +53,10 @@ function TeacherDashboard() {
             {classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           
-          <input 
-            type="text" 
-            className="glass-input" 
-            placeholder="Section (e.g., A)" 
-            value={section} 
-            onChange={e => setSection(e.target.value)} 
-          />
+          <select className="glass-input" value={section} onChange={e => setSection(e.target.value)}>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+          </select>
         </div>
 
         <input type="file" accept=".csv" onChange={e => setFile(e.target.files[0])} style={{ color: '#000', marginBottom: '20px', display: 'block' }} />

@@ -37,14 +37,12 @@ function Results() {
         <select className="glass-input" style={{ margin: 0 }} value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
           {classes.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input 
-          type="text" 
-          className="glass-input" 
-          style={{ margin: 0, width: '100px' }} 
-          placeholder="Section" 
-          value={section} 
-          onChange={e => setSection(e.target.value)} 
-        />
+        
+        <select className="glass-input" style={{ margin: 0, width: '120px' }} value={section} onChange={e => setSection(e.target.value)}>
+          <option value="A">Section A</option>
+          <option value="B">Section B</option>
+        </select>
+
         <button onClick={fetchResults} className="login-btn" style={{ margin: 0, width: 'auto' }}>
           {loading ? "Searching..." : "View"}
         </button>
