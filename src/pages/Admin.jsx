@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { db } from '../firebase';
-import { doc, writeBatch, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, writeBatch, collection, getDocs, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 
 function Admin() {
   const [students, setStudents] = useState([]);
   const [file, setFile] = useState(null);
+  const [currentTicker, setCurrentTicker] = useState('');
+  const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
 
-  useEffect(() => { fetchStudents(); }, []);
+  useEffect(() => { 
+    fetchStudents(); 
+    fetchCurrentTicker();
+  }, []);
 
   const fetchStudents = async () => {
     const querySnapshot = await getDocs(collection(db, "users"));
@@ -16,6 +21,29 @@ function Admin() {
       .filter(user => user.role === 'student')
       .sort((a, b) => (a.class || "").localeCompare(b.class) || (a.section || "").localeCompare(b.section));
     setStudents(list);
+  };
+
+  const fetchCurrentTicker = async () => {
+    const docSnap = await getDoc(doc(db, "settings", "ticker"));
+    if (docSnap.exists()) {
+      setCurrentTicker(docSnap.data().message || '');
+    }
+  };
+
+  const handleTickerUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdatingTicker(true);
+    try {
+      await setDoc(doc(db, "settings", "ticker"), {
+        message: e.target.tickerText.value,
+        lastUpdated: new Date().toISOString()
+      });
+      alert("News ticker updated successfully!");
+    } catch (error) {
+      alert("Failed to update ticker.");
+    } finally {
+      setIsUpdatingTicker(false);
+    }
   };
 
   const deleteStudent = async (email) => {
@@ -37,7 +65,7 @@ function Admin() {
             batch.set(doc(db, "users", row.email), {
               fullName: row.fullName,
               role: row.role,
-              studentId: row.studentId,
+              roll: row.roll, // Swapped to roll
               class: row.class,
               section: row.section,
               email: row.email
@@ -55,20 +83,40 @@ function Admin() {
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Admin Panel</h1>
       
+      {/* Ticker Management Box */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '800px' }}>
+        <h3>Update News Ticker Message</h3>
+        <form onSubmit={handleTickerUpdate}>
+          <input 
+            type="text" 
+            name="tickerText" 
+            className="glass-input" 
+            defaultValue={currentTicker} 
+            placeholder="Type live banner announcement here..." 
+            required 
+          />
+          <button type="submit" className="login-btn" disabled={isUpdatingTicker} style={{ marginTop: '5px' }}>
+            {isUpdatingTicker ? "Updating..." : "Publish Live Message"}
+          </button>
+        </form>
+      </div>
+
+      {/* Bulk Upload Section */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '40px', width: '100%', maxWidth: '800px' }}>
         <h3>Bulk Upload</h3>
-        <p>Ensure your CSV has columns: <b>email, fullName, role, studentId, class, section</b></p>
+        <p>Ensure your CSV has columns: <b>email, fullName, role, roll, class, section</b></p>
         <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} style={{ color: '#000', marginBottom: '10px' }} />
         <button onClick={processCSV} className="login-btn">Upload & Sync</button>
       </div>
 
+      {/* Student List Table */}
       <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px' }}>
         <h3>Active Students</h3>
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
               <th style={{ padding: '10px' }}>Name</th>
-              <th style={{ padding: '10px' }}>Student ID</th>
+              <th style={{ padding: '10px' }}>Roll</th>
               <th style={{ padding: '10px' }}>Class</th>
               <th style={{ padding: '10px' }}>Section</th>
               <th style={{ padding: '10px' }}>Email</th>
@@ -79,7 +127,7 @@ function Admin() {
             {students.map(s => (
               <tr key={s.id} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
                 <td style={{ padding: '15px' }}>{s.fullName}</td>
-                <td style={{ padding: '15px' }}>{s.studentId}</td>
+                <td style={{ padding: '15px' }}>{s.roll}</td>
                 <td style={{ padding: '15px' }}>{s.class}</td>
                 <td style={{ padding: '15px' }}>{s.section}</td>
                 <td style={{ padding: '15px' }}>{s.email}</td>

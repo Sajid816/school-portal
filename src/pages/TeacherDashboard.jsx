@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Papa from 'papaparse';
 import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 function TeacherDashboard() {
   const [file, setFile] = useState(null);
@@ -12,32 +12,48 @@ function TeacherDashboard() {
   const classes = ["Playgroup", "Nursery", "KG", "KG 1", "KG 2", "KG 3", "KG 4", "KG 5"];
 
   const handleUpload = () => {
-    if (!file) return alert("Please select a CSV file.");
-    setIsUploading(true);
+  if (!file) return alert("Please select a CSV file.");
+  setIsUploading(true);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const docId = `${selectedClass}_${section}`;
-          await setDoc(doc(db, "results", docId), {
-            class: selectedClass,
-            section: section,
-            lastUpdated: new Date().toISOString(),
-            students: results.data
-          });
-          alert(`Successfully uploaded results for ${selectedClass} - Section ${section}`);
-          setFile(null);
-        } catch (error) {
-          console.error(error);
-          alert("Error uploading results to database.");
-        } finally {
-          setIsUploading(false);
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async (results) => {
+      try {
+        const docId = `${selectedClass}_${section}`;
+        const docRef = doc(db, "results", docId);
+        
+        // Check if results for this class/section already exist
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const confirmOverwrite = window.confirm(
+            `Results for ${selectedClass} - Section ${section} already exist. Are you sure you want to overwrite them?`
+          );
+          if (!confirmOverwrite) {
+            setIsUploading(false);
+            return; // Stop the execution if they click Cancel
+          }
         }
+
+        // Proceed with upload if it's new or they confirmed the overwrite
+        await setDoc(docRef, {
+          class: selectedClass,
+          section: section,
+          lastUpdated: new Date().toISOString(),
+          students: results.data
+        });
+        
+        alert(`Successfully uploaded results for ${selectedClass} - Section ${section}`);
+        setFile(null);
+      } catch (error) {
+        console.error(error);
+        alert("Error uploading results to database.");
+      } finally {
+        setIsUploading(false);
       }
-    });
-  };
+    }
+  });
+};
 
   return (
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
