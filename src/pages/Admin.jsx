@@ -9,8 +9,16 @@ function Admin() {
   const [file, setFile] = useState(null);
   const [currentTicker, setCurrentTicker] = useState('');
   const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
+  
+  // Content Uploader State
   const [imageUrl, setImageUrl] = useState('');
-  const [imageCaption, setImageCaption] = useState('');
+  const [contentTitle, setContentTitle] = useState('');
+  const [destination, setDestination] = useState('gallery');
+  const [targetClass, setTargetClass] = useState('Playgroup');
+  const [targetSection, setTargetSection] = useState('A');
+  const [isUploadingContent, setIsUploadingContent] = useState(false);
+
+  const classes = ["Playgroup", "Nursery", "KG", "KG 1", "KG 2", "KG 3", "KG 4", "KG 5"];
 
   useEffect(() => { 
     fetchStudents(); 
@@ -26,24 +34,21 @@ function Admin() {
         .filter(user => user.role === 'student')
         .sort((a, b) => (a.class || "").localeCompare(b.class) || (a.section || "").localeCompare(b.section));
       setStudents(list);
-    } catch (err) { console.error("Error fetching students:", err); }
+    } catch (err) { console.error(err); }
   };
 
   const fetchCurrentTicker = async () => {
     try {
       const docSnap = await getDoc(doc(db, "settings", "ticker"));
-      if (docSnap.exists()) {
-        setCurrentTicker(docSnap.data().message || '');
-      }
-    } catch (err) { console.error("Error fetching ticker:", err); }
+      if (docSnap.exists()) { setCurrentTicker(docSnap.data().message || ''); }
+    } catch (err) { console.error(err); }
   };
 
   const fetchGallery = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "gallery"));
-      const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setGalleryImages(list);
-    } catch (err) { console.error("Error fetching gallery:", err); }
+      setGalleryImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { console.error(err); }
   };
 
   const handleTickerUpdate = async (e) => {
@@ -55,29 +60,51 @@ function Admin() {
         lastUpdated: new Date().toISOString()
       });
       alert("News ticker updated successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update ticker. Check your Firestore collection name and Security Rules.");
-    } finally {
-      setIsUpdatingTicker(false);
-    }
+    } catch (error) { alert("Failed to update ticker."); }
+    finally { setIsUpdatingTicker(false); }
   };
 
-  const handleAddImage = async (e) => {
+  const handleContentUpload = async (e) => {
     e.preventDefault();
-    if (!imageUrl) return alert("Please enter an image URL.");
+    if (!imageUrl) return alert("Please provide an image URL.");
+    setIsUploadingContent(true);
+
     try {
-      await addDoc(collection(db, "gallery"), {
-        url: imageUrl,
-        caption: imageCaption || "School Event",
-        uploadedAt: new Date().toISOString()
-      });
-      alert("Image added to gallery!");
+      if (destination === 'gallery') {
+        await addDoc(collection(db, "gallery"), {
+          url: imageUrl,
+          caption: contentTitle || "Gallery Image",
+          uploadedAt: new Date().toISOString()
+        });
+        alert("Added to Gallery successfully!");
+        fetchGallery();
+      } else if (destination === 'teachers') {
+        // Teacher info linked to a specific class and section slot
+        const teacherDocId = `${targetClass}_${targetSection}`;
+        await setDoc(doc(db, "teachers", teacherDocId), {
+          teacherName: contentTitle,
+          photoUrl: imageUrl,
+          class: targetClass,
+          section: targetSection,
+          lastUpdated: new Date().toISOString()
+        });
+        alert(`Teacher updated for ${targetClass} - Section ${targetSection}!`);
+      } else {
+        // Fallback placeholder destination route (Admissions, etc.)
+        await addDoc(collection(db, destination), {
+          url: imageUrl,
+          title: contentTitle,
+          uploadedAt: new Date().toISOString()
+        });
+        alert(`Content successfully linked to ${destination}!`);
+      }
       setImageUrl('');
-      setImageCaption('');
-      fetchGallery();
+      setContentTitle('');
     } catch (error) {
-      alert("Failed to add image to gallery.");
+      console.error(error);
+      alert("Failed to link image destination.");
+    } finally {
+      setIsUploadingContent(false);
     }
   };
 
@@ -125,62 +152,95 @@ function Admin() {
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Admin Panel</h1>
       
-      {/* 1. Ticker Management Box */}
+      {/* 1. Universal Website Content Linker Form with Instructions */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
+        <h3>Universal Website Content & Image Manager</h3>
+        
+        <blockquote style={{ background: 'rgba(0,0,0,0.05)', padding: '15px', borderRadius: '6px', borderLeft: '4px solid #0056b3', margin: '0 0 20px 0', fontSize: '0.95rem', lineHeight: '1.5' }}>
+          <strong>Instructions for uploading files:</strong><br/>
+          1. Open <a href="https://postimages.org" target="_blank" rel="noreferrer" style={{ color: '#0056b3', fontWeight: 'bold', decoration: 'underline' }}>Postimages (https://postimages.org)</a> in a new tab.<br/>
+          2. Upload your school image or teacher profile picture.<br/>
+          3. Once uploaded, copy the <strong>Direct Link</strong> (the URL must end directly in <code>.jpg</code> or <code>.png</code>).<br/>
+          4. Paste that link into the field below, choose where it belongs, and click Save.
+        </blockquote>
+
+        <form onSubmit={handleContentUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="text" 
+              className="glass-input" 
+              style={{ flex: 2, margin: 0 }} 
+              placeholder="Paste Direct Image URL (e.g., https://i.postimg.cc/xyz/pic.jpg)" 
+              value={imageUrl} 
+              onChange={(e) => setImageUrl(e.target.value)} 
+              required 
+            />
+            <input 
+              type="text" 
+              className="glass-input" 
+              style={{ flex: 1, margin: 0 }} 
+              placeholder="Name / Title / Caption" 
+              value={contentTitle} 
+              onChange={(e) => setContentTitle(e.target.value)} 
+              required 
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <label style={{ fontWeight: 'bold' }}>Route Destination:</label>
+            <select className="glass-input" style={{ margin: 0, width: '200px' }} value={destination} onChange={e => setDestination(e.target.value)}>
+              <option value="gallery">Photo Gallery</option>
+              <option value="teachers">Teachers Directory</option>
+              <option value="admissions">Admissions Info Page</option>
+            </select>
+
+            {/* Show class filters conditionally if the Admin selects Teachers destination */}
+            {destination === 'teachers' && (
+              <>
+                <select className="glass-input" style={{ margin: 0 }} value={targetClass} onChange={e => setTargetClass(e.target.value)}>
+                  {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select className="glass-input" style={{ margin: 0, width: '120px' }} value={targetSection} onChange={e => setTargetSection(e.target.value)}>
+                  <option value="A">Section A</option>
+                  <option value="B">Section B</option>
+                </select>
+              </>
+            )}
+          </div>
+
+          <button type="submit" className="login-btn" style={{ margin: 0, width: '200px' }} disabled={isUploadingContent}>
+            {isUploadingContent ? "Linking..." : "Save to Website"}
+          </button>
+        </form>
+
+        {/* Live Gallery Panel Preview */}
+        {destination === 'gallery' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+            {galleryImages.map(img => (
+              <div key={img.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
+                <img src={img.url} alt={img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+                <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{img.caption}</p>
+                <button 
+                  onClick={() => handleDeleteImage(img.id)} 
+                  style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(219, 83, 79, 0.9)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem' }}
+                >
+                  X
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Ticker Management Box */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px' }}>
         <h3>Update News Ticker Message</h3>
         <form onSubmit={handleTickerUpdate}>
-          <input 
-            type="text" 
-            name="tickerText" 
-            className="glass-input" 
-            defaultValue={currentTicker} 
-            placeholder="Type live banner announcement here..." 
-            required 
-          />
+          <input type="text" name="tickerText" className="glass-input" defaultValue={currentTicker} placeholder="Type live banner announcement here..." required />
           <button type="submit" className="login-btn" disabled={isUpdatingTicker} style={{ marginTop: '5px' }}>
-            {isUpdatingTicker ? "Updating..." : "Publish Live Message"}
+            {isUpdatingTicker ? "Publish Live Message" : "Publish Live Message"}
           </button>
         </form>
-      </div>
-
-      {/* 2. Gallery Management Box */}
-      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
-        <h3>Gallery Management</h3>
-        <form onSubmit={handleAddImage} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-          <input 
-            type="text" 
-            className="glass-input" 
-            style={{ flex: 2, margin: 0 }} 
-            placeholder="Image URL (e.g., https://example.com/photo.jpg)" 
-            value={imageUrl} 
-            onChange={(e) => setImageUrl(e.target.value)} 
-          />
-          <input 
-            type="text" 
-            className="glass-input" 
-            style={{ flex: 1, margin: 0 }} 
-            placeholder="Caption/Event Name" 
-            value={imageCaption} 
-            onChange={(e) => setImageCaption(e.target.value)} 
-          />
-          <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto' }}>Add Image</button>
-        </form>
-
-        {/* Live Gallery Preview Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px' }}>
-          {galleryImages.map(img => (
-            <div key={img.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
-              <img src={img.url} alt={img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
-              <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{img.caption}</p>
-              <button 
-                onClick={() => handleDeleteImage(img.id)} 
-                style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(219, 83, 79, 0.9)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem' }}
-              >
-                X
-              </button>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* 3. Bulk Upload Section */}

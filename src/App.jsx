@@ -9,6 +9,7 @@ import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
 import Results from './pages/Results';
 import Admin from './pages/Admin';
+import Faculty from './pages/Faculty'; // Public directory page
 
 function Navbar() {
   const location = useLocation();
@@ -30,6 +31,7 @@ function Navbar() {
     <nav className="top-ribbon">
       <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Home</Link>
       <Link to="/administration" className={location.pathname === '/administration' ? 'active' : ''}>Administration</Link>
+      <Link to="/faculty" className={location.pathname === '/faculty' ? 'active' : ''}>Teachers</Link>
       <Link to="/education" className={location.pathname === '/education' ? 'active' : ''}>Education</Link>
       <Link to="/admissions" className={location.pathname === '/admissions' ? 'active' : ''}>Admissions</Link>
       <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>Gallery</Link>
@@ -50,6 +52,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/administration" element={<Administration />} />
+        <Route path="/faculty" element={<Faculty />} />
         <Route path="/education" element={<Education />} />
         <Route path="/teacher" element={<TeacherDashboard />} />
         <Route path="/admissions" element={<Admissions />} />
