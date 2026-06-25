@@ -21,7 +21,14 @@ function Gallery() {
   const fetchImages = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "gallery"));
-      setImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort images chronologically by their upload timestamp
+      const sortedList = list.sort((a, b) => {
+        return new Date(a.uploadedAt) - new Date(b.uploadedAt);
+      });
+
+      setImages(sortedList);
     } catch (err) {
       console.error("Error loading gallery:", err);
     }
