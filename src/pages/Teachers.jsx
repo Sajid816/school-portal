@@ -19,19 +19,25 @@ function Teachers() {
     try {
       // 1. Fetch active class section configurations locked by Admin
       const configSnap = await getDoc(doc(db, "settings", "classSections"));
-      if (configSnap.exists()) {
-        setSectionsMap(configSnap.data().mapping || {});
+      if (configSnap.exists() && configSnap.data().mapping) {
+        setSectionsMap(configSnap.data().mapping);
+      } else {
+        // Safe baseline fallback mapping if the database configuration is uninitialized
+        const defaultFallback = {};
+        classes.forEach(c => {
+          defaultFallback[c] = ["A", "B"]; // Default visibility until Admin customizes them
+        });
+        setSectionsMap(defaultFallback);
       }
 
       // 2. Fetch all uploaded teacher entries from the collection
       const querySnapshot = await getDocs(collection(db, "teachers"));
       const teachersList = querySnapshot.docs.map(doc => doc.data());
       
-      // Map list array directly into an indexed key lookup dictionary layout state: e.g. {"Playgroup_A": {data}}
       const indexedTeachers = {};
       teachersList.forEach(t => {
         if (t.class && t.section) {
-          indexedTeachers[`${t.class}_${t.section}`] = t;
+          indexedTeachers[`${t.class.trim()}_${t.section.trim()}`] = t;
         }
       });
       setTeachersData(indexedTeachers);
@@ -47,9 +53,6 @@ function Teachers() {
     return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading Teachers Directory...</div>;
   }
 
-  // Check if the administrator has configured ANY active sections across the board yet
-  const hasAnyConfig = Object.values(sectionsMap).some(arr => arr && arr.length > 0);
-
   return (
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Class Teachers Directory</h1>
@@ -59,7 +62,7 @@ function Teachers() {
         {classes.map(className => {
           const activeSections = sectionsMap[className] || [];
           
-          // If no active sections are configured for this class, don't render an empty card block
+          // If no active sections are configured for this class, hide the card entirely
           if (activeSections.length === 0) return null;
 
           return (
@@ -105,13 +108,6 @@ function Teachers() {
             </div>
           );
         })}
-
-        {/* Fallback layout banner notice if database class mappings dictionary path is completely unconfigured */}
-        {!hasAnyConfig && (
-          <p style={{ textAlign: 'center', color: '#ddd', fontStyle: 'italic' }}>
-            No running class sections have been locked by administration yet.
-          </p>
-        )}
       </div>
     </div>
   );
