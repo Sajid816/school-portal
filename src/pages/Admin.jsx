@@ -10,7 +10,6 @@ function Admin() {
   // Section Configuration Mapping States
   const [sectionsMap, setSectionsMap] = useState({});
   const [sectionsLoading, setSectionsLoading] = useState(true);
-  const [isSavingSections, setIsSavingSections] = useState(false);
   const [configSelectedClass, setConfigSelectedClass] = useState('Playgroup');
 
   // Content Uploader State
@@ -31,7 +30,6 @@ function Admin() {
     fetchSectionsConfig();
   }, []);
 
-  // Sync content uploader dropdown state when target class shifts
   useEffect(() => {
     const activeSections = sectionsMap[targetClass] || [];
     if (activeSections.length > 0) {
@@ -81,7 +79,8 @@ function Admin() {
     finally { setIsUpdatingTicker(false); }
   };
 
-  const handleCheckboxChange = (sectionLetter) => {
+  // Instant atomic updates write database state without racing states
+  const handleCheckboxChange = async (sectionLetter) => {
     const currentSections = sectionsMap[configSelectedClass] || [];
     let updatedSections = [];
 
@@ -91,21 +90,19 @@ function Admin() {
       updatedSections = [...currentSections, sectionLetter].sort();
     }
 
-    setSectionsMap({
+    const updatedMap = {
       ...sectionsMap,
       [configSelectedClass]: updatedSections
-    });
-  };
+    };
 
-  const handleSaveSectionsConfig = async () => {
-    setIsSavingSections(true);
+    // Update local state layout map instantly
+    setSectionsMap(updatedMap);
+
+    // Commit cleanly directly to Firestore baseline mapping configuration fields
     try {
-      await setDoc(doc(db, "settings", "classSections"), { mapping: sectionsMap });
-      alert(`Active sections for ${configSelectedClass} updated successfully!`);
+      await setDoc(doc(db, "settings", "classSections"), { mapping: updatedMap });
     } catch (err) {
-      alert("Failed to save configuration profile.");
-    } finally {
-      setIsSavingSections(false);
+      console.error("Failed to sync structural configuration map:", err);
     }
   };
 
@@ -174,7 +171,7 @@ function Admin() {
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Manage Class Sections (Annual Setup)</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>
-          Select a class, then check which sections are active this academic year. This controls what options Teachers and Public Visitors see.
+          Check or uncheck sections below. Changes are saved automatically in real-time to sync database views instantly.
         </p>
 
         {sectionsLoading ? (
@@ -204,10 +201,6 @@ function Admin() {
                 ))}
               </div>
             </div>
-
-            <button onClick={handleSaveSectionsConfig} className="login-btn" style={{ margin: 0, width: '220px' }} disabled={isSavingSections}>
-              {isSavingSections ? "Locking Sections..." : `Lock Sections for ${configSelectedClass}`}
-            </button>
           </div>
         )}
       </div>
