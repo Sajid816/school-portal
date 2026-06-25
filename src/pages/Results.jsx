@@ -1,27 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 function Results() {
   const [selectedClass, setSelectedClass] = useState('Playgroup');
-  const [section, setSection] = useState('A');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [sectionsMap, setSectionsMap] = useState({});
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Swapped KG 1-5 layout names to standard Class 1-5 keys
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 
+  useEffect(() => {
+    fetchAdminSectionsConfig();
+  }, []);
+
+  const fetchAdminSectionsConfig = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, "settings", "classSections"));
+      if (docSnap.exists()) {
+        setSectionsMap(docSnap.data().mapping || {});
+      }
+    } catch (err) {
+      console.error("Error loading sections layout metadata:", err);
+    }
+  };
+
+  const availableSections = sectionsMap[selectedClass] || [];
+
+  // Reset dropdown index pointer when user flips parent class parameters
+  useEffect(() => {
+    if (availableSections.length > 0) {
+      setSelectedSection(availableSections[0]);
+    } else {
+      setSelectedSection('');
+    }
+    setResultData(null);
+  }, [selectedClass, sectionsMap]);
+
   const fetchResults = async () => {
+    if (!selectedSection) return alert("No active sections mapping found.");
     setLoading(true);
     setResultData(null);
     try {
-      const docId = `${selectedClass}_${section}`;
-      const docSnap = await getDoc(doc(db, "results", docId));
+      const docId = `${selectedClass}_${selectedSection}`;
+      const docSnap = await getDoc(doc(doc(db, "results", docId)));
       
       if (docSnap.exists()) {
         setResultData(docSnap.data().students);
       } else {
-        alert("No results found for this class and section.");
+        alert(`No student results uploaded yet for ${selectedClass} - Section ${selectedSection}.`);
       }
     } catch (error) {
       console.error("Error fetching results:", error);
@@ -39,23 +67,32 @@ function Results() {
           {classes.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         
-        <select className="glass-input" style={{ margin: 0, width: '120px' }} value={section} onChange={e => setSection(e.target.value)}>
-          <option value="A">Section A</option>
-          <option value="B">Section B</option>
+        <select 
+          className="glass-input" 
+          style={{ margin: 0, width: '140px' }} 
+          value={selectedSection} 
+          onChange={e => setSelectedSection(e.target.value)}
+          disabled={availableSections.length === 0}
+        >
+          {availableSections.length > 0 ? (
+            availableSections.map(sec => <option key={sec} value={sec}>Section {sec}</option>)
+          ) : (
+            <option value="">No Sections</option>
+          )}
         </select>
 
-        <button onClick={fetchResults} className="login-btn" style={{ margin: 0, width: 'auto' }}>
+        <button onClick={fetchResults} className="login-btn" style={{ margin: 0, width: 'auto' }} disabled={availableSections.length === 0}>
           {loading ? "Searching..." : "View"}
         </button>
       </div>
 
       {resultData && (
         <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px', marginTop: '20px' }}>
-          <h3>Results: {selectedClass} - Section {section}</h3>
+          <h3>Results: {selectedClass} - Section {selectedSection}</h3>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-                <th style={{ padding: '10px' }}>Roll</th> {/* Swapped Header from ID to Roll */}
+                <th style={{ padding: '10px' }}>Roll</th>
                 <th style={{ padding: '10px' }}>Name</th>
                 <th style={{ padding: '10px' }}>Bangla</th>
                 <th style={{ padding: '10px' }}>English</th>
@@ -66,7 +103,6 @@ function Results() {
             <tbody>
               {resultData.map((student, index) => (
                 <tr key={index} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                  {/* Pulls student.roll directly instead of old legacy structural values */}
                   <td style={{ padding: '15px' }}>{student.roll || student.studentId}</td>
                   <td style={{ padding: '15px' }}>{student.studentName}</td>
                   <td style={{ padding: '15px' }}>{student.bangla}</td>

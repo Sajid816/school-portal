@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -6,14 +6,41 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 function TeacherDashboard() {
   const [file, setFile] = useState(null);
   const [selectedClass, setSelectedClass] = useState('Playgroup');
-  const [section, setSection] = useState('A');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [sectionsMap, setSectionsMap] = useState({});
   const [isUploading, setIsUploading] = useState(false);
 
-  // Updated array mapping structure: Changed KG 1-5 variants to Class 1-5
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
+
+  useEffect(() => {
+    fetchAdminSectionsConfig();
+  }, []);
+
+  const fetchAdminSectionsConfig = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, "settings", "classSections"));
+      if (docSnap.exists()) {
+        setSectionsMap(docSnap.data().mapping || {});
+      }
+    } catch (err) {
+      console.error("Error reading class mappings:", err);
+    }
+  };
+
+  // Automatically update the section dropdown options when the teacher picks a different class
+  const availableSections = sectionsMap[selectedClass] || [];
+
+  useEffect(() => {
+    if (availableSections.length > 0) {
+      setSelectedSection(availableSections[0]);
+    } else {
+      setSelectedSection('');
+    }
+  }, [selectedClass, sectionsMap]);
 
   const handleUpload = () => {
     if (!file) return alert("Please select a CSV file.");
+    if (!selectedSection) return alert("The Admin has not activated any sections for this class yet.");
     setIsUploading(true);
 
     Papa.parse(file, {
@@ -21,32 +48,29 @@ function TeacherDashboard() {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          const docId = `${selectedClass}_${section}`;
+          const docId = `${selectedClass}_${selectedSection}`;
           const docRef = doc(db, "results", docId);
           
-          // Check if results for this class/section combination already exist
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const confirmOverwrite = window.confirm(
-              `Results for ${selectedClass} - Section ${section} already exist. Are you sure you want to overwrite them?`
+              `Results for ${selectedClass} - Section ${selectedSection} already exist. Overwrite them?`
             );
             if (!confirmOverwrite) {
               setIsUploading(false);
-              return; // Halt execution safely if user aborts
+              return;
             }
           }
 
-          // Write updated dataset back into the target document path
           await setDoc(docRef, {
             class: selectedClass,
-            section: section,
+            section: selectedSection,
             lastUpdated: new Date().toISOString(),
             students: results.data
           });
           
-          alert(`Successfully uploaded results for ${selectedClass} - Section ${section}`);
+          alert(`Uploaded results for ${selectedClass} - Section ${selectedSection}`);
           setFile(null);
-          // Safely resets native upload file selector UI value
           document.getElementById("csv-file-input").value = "";
         } catch (error) {
           console.error(error);
@@ -64,19 +88,33 @@ function TeacherDashboard() {
       
       <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '600px' }}>
         <h3>Upload Class Results</h3>
-        <p>Your CSV file <b>must</b> have columns exactly in this order: <br/>
-        <b>roll, studentName, bangla, english, math, totalGrade</b></p>
+        <p>Your CSV file columns must be: <br/><b>roll, studentName, bangla, english, math, totalGrade</b></p>
         
         <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
           <select className="glass-input" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
             {classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           
-          <select className="glass-input" value={section} onChange={e => setSection(e.target.value)}>
-            <option value="A">Section A</option>
-            <option value="B">Section B</option>
+          {/* Strict Dropdown mapped cleanly from Admin rules */}
+          <select 
+            className="glass-input" 
+            value={selectedSection} 
+            onChange={e => setSelectedSection(e.target.value)}
+            disabled={availableSections.length === 0}
+          >
+            {availableSections.length > 0 ? (
+              availableSections.map(sec => <option key={sec} value={sec}>Section {sec}</option>)
+            ) : (
+              <option value="">No Active Sections</option>
+            )}
           </select>
         </div>
+
+        {availableSections.length === 0 && (
+          <p style={{ color: '#d9534f', fontSize: '0.85rem', marginBottom: '15px', fontWeight: 'bold' }}>
+            ⚠️ Notice: Admin needs to activate sections for {selectedClass} before you can upload.
+          </p>
+        )}
 
         <input 
           id="csv-file-input"
@@ -84,9 +122,10 @@ function TeacherDashboard() {
           accept=".csv" 
           onChange={e => setFile(e.target.files[0])} 
           style={{ color: '#000', marginBottom: '20px', display: 'block' }} 
+          disabled={availableSections.length === 0}
         />
         
-        <button onClick={handleUpload} className="login-btn" disabled={isUploading}>
+        <button onClick={handleUpload} className="login-btn" disabled={isUploading || availableSections.length === 0}>
           {isUploading ? "Uploading..." : "Upload Results"}
         </button>
       </div>
