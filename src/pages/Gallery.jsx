@@ -23,9 +23,9 @@ function Gallery() {
       const querySnapshot = await getDocs(collection(db, "gallery"));
       const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Sort images chronologically by their upload timestamp
+      // Sort images chronologically by their upload timestamp (oldest first)
       const sortedList = list.sort((a, b) => {
-        return new Date(a.uploadedAt) - new Date(b.uploadedAt);
+        return new Date(a.uploadedAt || 0) - new Date(b.uploadedAt || 0);
       });
 
       setImages(sortedList);
@@ -89,7 +89,7 @@ function Gallery() {
   const handleScroll = (sectionTitle, direction) => {
     const container = document.getElementById(`carousel-${sectionTitle}`);
     if (container) {
-      const scrollAmount = 350;
+      const scrollAmount = 480; // Adjusted scroll step to match larger image blocks
       if (direction === 'left') {
         container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
       } else {
@@ -147,7 +147,6 @@ function Gallery() {
             <div key={sectionTitle} className="glass-notice-box" style={{ color: '#333', padding: '30px', position: 'relative' }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
-                {/* Visual case adjustment: Capitalizes the output automatically on screen render */}
                 <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
                 {isAdmin && (
                   <button onClick={() => handleDeleteSection(sectionTitle)} className="delete-btn" style={{ padding: '5px 15px', fontSize: '0.9rem' }}>
@@ -158,9 +157,9 @@ function Gallery() {
               
               {isAdmin ? (
                 // ADMIN VIEW: Wrapping Grid layout for quick content deletion management
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                   {sectionImages.map(img => (
-                    <div key={img.id} style={{ position: 'relative', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                    <div key={img.id} style={{ position: 'relative', height: '200px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
                       <img src={img.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <button 
                         onClick={() => handleDeleteImage(img.id)}
@@ -175,7 +174,7 @@ function Gallery() {
                 // VISITOR VIEW: Clean Horizontal Scroll Carousel Matching Sample Mockup
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   
-                  {sectionImages.length > 3 && (
+                  {sectionImages.length > 2 && (
                     <button 
                       onClick={() => handleScroll(sectionTitle, 'left')}
                       style={{ position: 'absolute', left: '-20px', zIndex: 10, background: '#fff', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
@@ -189,13 +188,13 @@ function Gallery() {
                     style={{ display: 'flex', gap: '20px', overflowX: 'hidden', scrollBehavior: 'smooth', width: '100%', padding: '10px 0' }}
                   >
                     {sectionImages.map(img => (
-                      <div key={img.id} style={{ minWidth: '300px', width: '300px', height: '220px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', background: '#000' }}>
+                      <div key={img.id} style={{ minWidth: '450px', width: '450px', height: '320px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', background: '#000' }}>
                         <img src={img.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     ))}
                   </div>
 
-                  {sectionImages.length > 3 && (
+                  {sectionImages.length > 2 && (
                     <button 
                       onClick={() => handleScroll(sectionTitle, 'right')}
                       style={{ position: 'absolute', right: '-20px', zIndex: 10, background: '#fff', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
