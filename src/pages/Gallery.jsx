@@ -1,32 +1,22 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, deleteDoc, doc, addDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, addDoc, writeBatch, setDoc, getDoc } from 'firebase/firestore';
 
 function Gallery() {
   const [images, setImages] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeIndices, setActiveIndices] = useState({});
   const [hoveredSection, setHoveredSection] = useState(null);
-  
-  // Fade animation state tracking per section
   const [fadeStates, setFadeStates] = useState({});
+  const [sectionOrder, setSectionOrder] = useState([]);
 
   // Admin Upload State
   const [imageUrl, setImageUrl] = useState('');
   const [sectionName, setSectionName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  // Strict structural section order map
-  const SECTION_ORDER = [
-    "campus",
-    "class rooms",
-    "winter tour",
-    "sports event",
-    "general"
-  ];
-
   useEffect(() => {
-    fetchImages();
+    fetchImagesAndOrder();
     if (localStorage.getItem('role') === 'admin') {
       setIsAdmin(true);
     }
@@ -45,7 +35,6 @@ function Gallery() {
         const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
         if (sectionImages.length <= 1) return;
 
-        // Trigger smooth automatic fade transition
         triggerSmoothTransition(sectionTitle, 'next', sectionImages.length);
       });
     }, 4000); 
@@ -53,13 +42,18 @@ function Gallery() {
     return () => clearInterval(interval);
   }, [images, hoveredSection, isAdmin, activeIndices]);
 
-  const fetchImages = async () => {
+  const fetchImagesAndOrder = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "gallery"));
       const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
       const sortedList = list.sort((a, b) => new Date(a.uploadedAt || 0) - new Date(b.uploadedAt || 0));
       setImages(sortedList);
+
+      // Fetch admin arrangement map
+      const orderSnap = await getDoc(doc(db, "settings", "galleryOrder"));
+      if (orderSnap.exists()) {
+        setSectionOrder(orderSnap.data().order || []);
+      }
 
       const initialIndices = {};
       const initialFades = {};
@@ -67,7 +61,7 @@ function Gallery() {
         const caption = doc.data().caption || "general";
         if (!(caption in initialIndices)) {
           initialIndices[caption] = 0;
-          initialFades[caption] = 1; // Fully visible by default
+          initialFades[caption] = 1;
         }
       });
       setActiveIndices(prev => ({ ...initialIndices, ...prev }));
@@ -77,12 +71,8 @@ function Gallery() {
     }
   };
 
-  // Handles the smooth fading out, switching the array item, and fading back in
   const triggerSmoothTransition = (sectionTitle, direction, totalItems) => {
-    // 1. Fade Out
     setFadeStates(prev => ({ ...prev, [sectionTitle]: 0 }));
-
-    // 2. Wait for fade out animation (300ms) to complete before changing the image index source
     setTimeout(() => {
       setActiveIndices(prev => {
         const currentIndex = prev[sectionTitle] || 0;
@@ -90,24 +80,22 @@ function Gallery() {
         if (direction === 'next') {
           newIndex = (currentIndex + 1) % totalItems;
         } else if (typeof direction === 'number') {
-          newIndex = direction; // Direct dot click indicator matching
+          newIndex = direction;
         } else {
           newIndex = (currentIndex - 1 + totalItems) % totalItems;
         }
         return { ...prev, [sectionTitle]: newIndex };
       });
-
-      // 3. Fade Back In
       setFadeStates(prev => ({ ...prev, [sectionTitle]: 1 }));
     }, 300);
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!imageUrl || !sectionName) return alert("Please provide both an image URL and a section name.");
+    if (!imageUrl || !sectionName) return alert("Please fill fields.");
     setIsUploading(true);
 
-    const cleanSectionName = sectionName.trim().replace(/\s+/g, ' ').toLowerCase();
+    const cleanSectionName = sectionName.trim().toLowerCase();
 
     try {
       await addDoc(collection(db, "gallery"), {
@@ -115,10 +103,18 @@ function Gallery() {
         caption: cleanSectionName, 
         uploadedAt: new Date().toISOString()
       });
+
+      // Append section to order mapping layout if completely new
+      if (!sectionOrder.includes(cleanSectionName)) {
+        const updatedOrder = [...sectionOrder, cleanSectionName];
+        setSectionOrder(updatedOrder);
+        await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
+      }
+
       alert(`Image added successfully!`);
       setImageUrl('');
       setSectionName('');
-      fetchImages();
+      fetchImagesAndOrder();
     } catch (error) {
       alert("Failed to upload image.");
     } finally {
@@ -126,27 +122,41 @@ function Gallery() {
     }
   };
 
+  const handleMoveSection = async (index, direction) => {
+    const updatedOrder = [...sectionOrder];
+    if (direction === 'up' && index > 0) {
+      [updatedOrder[index], updatedOrder[index - 1]] = [updatedOrder[index - 1], updatedOrder[index]];
+    } else if (direction === 'down' && index < updatedOrder.length - 1) {
+      [updatedOrder[index], updatedOrder[index + 1]] = [updatedOrder[index + 1], updatedOrder[index]];
+    } else {
+      return;
+    }
+    setSectionOrder(updatedOrder);
+    await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
+  };
+
   const handleDeleteImage = async (id, sectionTitle) => {
     if (window.confirm("Remove this image?")) {
       await deleteDoc(doc(db, "gallery", id));
       setActiveIndices(prev => ({ ...prev, [sectionTitle]: 0 }));
-      fetchImages();
+      fetchImagesAndOrder();
     }
   };
 
   const handleDeleteSection = async (targetSection) => {
-    if (window.confirm(`Are you sure you want to delete the ENTIRE "${targetSection}" section?`)) {
+    if (window.confirm(`Delete entire "${targetSection}" section?`)) {
       try {
         const batch = writeBatch(db);
         const imagesToDelete = images.filter(img => (img.caption || "general") === targetSection);
-        
-        imagesToDelete.forEach(img => {
-          batch.delete(doc(db, "gallery", img.id));
-        });
-
+        imagesToDelete.forEach(img => batch.delete(doc(db, "gallery", img.id)));
         await batch.commit();
+
+        const updatedOrder = sectionOrder.filter(s => s !== targetSection);
+        setSectionOrder(updatedOrder);
+        await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
+
         alert(`Section deleted.`);
-        fetchImages();
+        fetchImagesAndOrder();
       } catch (error) {
         alert("Failed to delete section.");
       }
@@ -154,9 +164,11 @@ function Gallery() {
   };
 
   const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
+  
+  // Sync structural changes with fallback comparison rules
   const sortedSections = uniquelyFoundSections.sort((a, b) => {
-    const indexA = SECTION_ORDER.indexOf(a);
-    const indexB = SECTION_ORDER.indexOf(b);
+    const indexA = sectionOrder.indexOf(a);
+    const indexB = sectionOrder.indexOf(b);
     if (indexA === -1 && indexB === -1) return a.localeCompare(b);
     if (indexA === -1) return 1;
     if (indexB === -1) return -1;
@@ -172,38 +184,17 @@ function Gallery() {
       {isAdmin && (
         <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px', marginBottom: '40px' }}>
           <h3>Add to Gallery</h3>
-          <p style={{ fontSize: '0.9rem', marginBottom: '15px' }}>
-            Upload your image to <a href="https://postimages.org" target="_blank" rel="noreferrer" style={{ color: '#0056b3' }}>Postimages</a> and paste the Direct Link here. Available standard tracks: <b>{SECTION_ORDER.join(', ')}</b>
-          </p>
           <form onSubmit={handleUpload} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            <input 
-              type="text" 
-              className="glass-input" 
-              style={{ flex: 2, margin: 0 }} 
-              placeholder="Direct Image URL (ends in .jpg/.png)" 
-              value={imageUrl} 
-              onChange={e => setImageUrl(e.target.value)} 
-              required 
-            />
-            <input 
-              type="text" 
-              className="glass-input" 
-              style={{ flex: 1, margin: 0 }} 
-              placeholder="Section Name (e.g., Campus)" 
-              value={sectionName} 
-              onChange={e => setSectionName(e.target.value)} 
-              required 
-            />
-            <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto' }} disabled={isUploading}>
-              {isUploading ? "Adding..." : "Upload Image"}
-            </button>
+            <input type="text" className="glass-input" style={{ flex: 2, margin: 0 }} placeholder="Direct Image URL (ends in .jpg/.png)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
+            <input type="text" className="glass-input" style={{ flex: 1, margin: 0 }} placeholder="Section Name (e.g., Campus)" value={sectionName} onChange={e => setSectionName(e.target.value)} required />
+            <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto' }} disabled={isUploading}>{isUploading ? "Adding..." : "Upload Image"}</button>
           </form>
         </div>
       )}
 
       {/* GALLERY DISPLAY */}
       <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
-        {sortedSections.map(sectionTitle => {
+        {sortedSections.map((sectionTitle, orderIdx) => {
           const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
           if (sectionImages.length === 0) return null;
 
@@ -212,100 +203,53 @@ function Gallery() {
           const currentOpacity = fadeStates[sectionTitle] !== undefined ? fadeStates[sectionTitle] : 1;
 
           return (
-            <div 
-              key={sectionTitle} 
-              className="glass-notice-box" 
-              style={{ color: '#333', padding: '30px', position: 'relative' }}
-              onMouseEnter={() => setHoveredSection(sectionTitle)}
-              onMouseLeave={() => setHoveredSection(null)}
-            >
+            <div key={sectionTitle} className="glass-notice-box" style={{ color: '#333', padding: '30px', position: 'relative' }} onMouseEnter={() => setHoveredSection(sectionTitle)} onMouseLeave={() => setHoveredSection(null)}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
+                  {/* Inline Reordering controls available exclusively to Admin */}
+                  {isAdmin && (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button onClick={() => handleMoveSection(orderIdx, 'up')} disabled={orderIdx === 0} style={{ padding: '2px 8px', cursor: 'pointer' }}>▲ Move Up</button>
+                      <button onClick={() => handleMoveSection(orderIdx, 'down')} disabled={orderIdx === sortedSections.length - 1} style={{ padding: '2px 8px', cursor: 'pointer' }}>▼ Move Down</button>
+                    </div>
+                  )}
+                </div>
                 {isAdmin && (
-                  <button onClick={() => handleDeleteSection(sectionTitle)} className="delete-btn" style={{ padding: '5px 15px', fontSize: '0.9rem' }}>
-                    Delete Entire Section
-                  </button>
+                  <button onClick={() => handleDeleteSection(sectionTitle)} className="delete-btn" style={{ padding: '5px 15px', fontSize: '0.9rem' }}>Delete Entire Section</button>
                 )}
               </div>
               
               {isAdmin ? (
-                // ADMIN GRID WORKSPACE VIEW
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                   {sectionImages.map(img => (
                     <div key={img.id} style={{ position: 'relative', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc', background: '#f0f0f0' }}>
                       <img src={img.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      <button 
-                        onClick={() => handleDeleteImage(img.id, sectionTitle)}
-                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(219, 83, 79, 0.9)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 'bold' }}
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => handleDeleteImage(img.id, sectionTitle)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(219, 83, 79, 0.9)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 'bold' }}>Delete</button>
                     </div>
                   ))}
                 </div>
               ) : (
-                // VISITOR VIEW: Auto-scrolling Slideshow with Smooth Cross-Fade and Hover Pause
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                  
                   <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', height: '450px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
-                    
-                    {/* Left Slider Arrow */}
                     {sectionImages.length > 1 && (
-                      <button 
-                        onClick={() => triggerSmoothTransition(sectionTitle, 'prev', sectionImages.length)}
-                        style={{ position: 'absolute', left: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        &#8249;
-                      </button>
+                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'prev', sectionImages.length)} style={{ position: 'absolute', left: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8249;</button>
                     )}
-
-                    {/* Image Output Block with Smooth Opacity Transition Styling */}
                     {currentImage && (
-                      <img 
-                        src={currentImage.url} 
-                        alt={sectionTitle} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'contain',
-                          opacity: currentOpacity,
-                          transition: 'opacity 0.3s ease-in-out' // Smooth cross-fade transition setting
-                        }} 
-                      />
+                      <img src={currentImage.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: currentOpacity, transition: 'opacity 0.3s ease-in-out' }} />
                     )}
-
-                    {/* Right Slider Arrow */}
                     {sectionImages.length > 1 && (
-                      <button 
-                        onClick={() => triggerSmoothTransition(sectionTitle, 'next', sectionImages.length)}
-                        style={{ position: 'absolute', right: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        &#8250;
-                      </button>
+                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'next', sectionImages.length)} style={{ position: 'absolute', right: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8250;</button>
                     )}
                   </div>
-
-                  {/* DOT TRACK INDICATOR BAR */}
                   {sectionImages.length > 1 && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '15px', justifyContent: 'center', alignItems: 'center' }}>
                       {sectionImages.map((_, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => triggerSmoothTransition(sectionTitle, idx, sectionImages.length)}
-                          style={{ 
-                            width: idx === currentIndex ? '12px' : '8px', 
-                            height: idx === currentIndex ? '12px' : '8px', 
-                            borderRadius: '50%', 
-                            background: idx === currentIndex ? '#0056b3' : '#bbb', 
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer'
-                          }}
-                        />
+                        <div key={idx} onClick={() => triggerSmoothTransition(sectionTitle, idx, sectionImages.length)} style={{ width: idx === currentIndex ? '12px' : '8px', height: idx === currentIndex ? '12px' : '8px', borderRadius: '50%', background: idx === currentIndex ? '#0056b3' : '#bbb', transition: 'all 0.2s ease', cursor: 'pointer' }} />
                       ))}
                     </div>
                   )}
-                  
                 </div>
               )}
 

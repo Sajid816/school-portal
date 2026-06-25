@@ -8,7 +8,8 @@ function Results() {
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const classes = ["Playgroup", "Nursery", "KG", "KG 1", "KG 2", "KG 3", "KG 4", "KG 5"];
+  // Swapped KG 1-5 layout names to standard Class 1-5 keys
+  const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 
   const fetchResults = async () => {
     setLoading(true);
@@ -54,7 +55,7 @@ function Results() {
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-                <th style={{ padding: '10px' }}>ID</th>
+                <th style={{ padding: '10px' }}>Roll</th> {/* Swapped Header from ID to Roll */}
                 <th style={{ padding: '10px' }}>Name</th>
                 <th style={{ padding: '10px' }}>Bangla</th>
                 <th style={{ padding: '10px' }}>English</th>
@@ -65,7 +66,8 @@ function Results() {
             <tbody>
               {resultData.map((student, index) => (
                 <tr key={index} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                  <td style={{ padding: '15px' }}>{student.studentId}</td>
+                  {/* Pulls student.roll directly instead of old legacy structural values */}
+                  <td style={{ padding: '15px' }}>{student.roll || student.studentId}</td>
                   <td style={{ padding: '15px' }}>{student.studentName}</td>
                   <td style={{ padding: '15px' }}>{student.bangla}</td>
                   <td style={{ padding: '15px' }}>{student.english}</td>
