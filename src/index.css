@@ -15,7 +15,8 @@ body::before {
     content: "";
     position: fixed;
     top: -20px; left: -20px; right: -20px; bottom: -20px;
-    background: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    /* Point the path cleanly to the root directory file layout */
+    background: url('/Web_BG.png') center/cover no-repeat;
     filter: blur(12px);
     z-index: -1;
 }
