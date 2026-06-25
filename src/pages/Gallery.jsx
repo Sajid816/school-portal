@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc, addDoc, writeBatch } from 'firebase/firestore';
 
@@ -7,6 +7,9 @@ function Gallery() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeIndices, setActiveIndices] = useState({});
   const [hoveredSection, setHoveredSection] = useState(null);
+  
+  // Fade animation state tracking per section
+  const [fadeStates, setFadeStates] = useState({});
 
   // Admin Upload State
   const [imageUrl, setImageUrl] = useState('');
@@ -36,26 +39,19 @@ function Gallery() {
     const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
 
     const interval = setInterval(() => {
-      setActiveIndices(prev => {
-        const updatedIndices = { ...prev };
+      uniquelyFoundSections.forEach(sectionTitle => {
+        if (hoveredSection === sectionTitle) return;
 
-        uniquelyFoundSections.forEach(sectionTitle => {
-          // Skip scrolling if the user is hovering over this specific section
-          if (hoveredSection === sectionTitle) return;
+        const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
+        if (sectionImages.length <= 1) return;
 
-          const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
-          if (sectionImages.length <= 1) return;
-
-          const currentIndex = prev[sectionTitle] || 0;
-          updatedIndices[sectionTitle] = (currentIndex + 1) % sectionImages.length;
-        });
-
-        return updatedIndices;
+        // Trigger smooth automatic fade transition
+        triggerSmoothTransition(sectionTitle, 'next', sectionImages.length);
       });
-    }, 4000); // Transitions automatically every 4 seconds
+    }, 4000); 
 
     return () => clearInterval(interval);
-  }, [images, hoveredSection, isAdmin]);
+  }, [images, hoveredSection, isAdmin, activeIndices]);
 
   const fetchImages = async () => {
     try {
@@ -66,16 +62,44 @@ function Gallery() {
       setImages(sortedList);
 
       const initialIndices = {};
+      const initialFades = {};
       querySnapshot.docs.forEach(doc => {
         const caption = doc.data().caption || "general";
         if (!(caption in initialIndices)) {
           initialIndices[caption] = 0;
+          initialFades[caption] = 1; // Fully visible by default
         }
       });
       setActiveIndices(prev => ({ ...initialIndices, ...prev }));
+      setFadeStates(prev => ({ ...initialFades, ...prev }));
     } catch (err) {
       console.error("Error loading gallery:", err);
     }
+  };
+
+  // Handles the smooth fading out, switching the array item, and fading back in
+  const triggerSmoothTransition = (sectionTitle, direction, totalItems) => {
+    // 1. Fade Out
+    setFadeStates(prev => ({ ...prev, [sectionTitle]: 0 }));
+
+    // 2. Wait for fade out animation (300ms) to complete before changing the image index source
+    setTimeout(() => {
+      setActiveIndices(prev => {
+        const currentIndex = prev[sectionTitle] || 0;
+        let newIndex = currentIndex;
+        if (direction === 'next') {
+          newIndex = (currentIndex + 1) % totalItems;
+        } else if (typeof direction === 'number') {
+          newIndex = direction; // Direct dot click indicator matching
+        } else {
+          newIndex = (currentIndex - 1 + totalItems) % totalItems;
+        }
+        return { ...prev, [sectionTitle]: newIndex };
+      });
+
+      // 3. Fade Back In
+      setFadeStates(prev => ({ ...prev, [sectionTitle]: 1 }));
+    }, 300);
   };
 
   const handleUpload = async (e) => {
@@ -127,19 +151,6 @@ function Gallery() {
         alert("Failed to delete section.");
       }
     }
-  };
-
-  const changeSlide = (sectionTitle, direction, totalItems) => {
-    const currentIndex = activeIndices[sectionTitle] || 0;
-    let newIndex = currentIndex;
-
-    if (direction === 'next') {
-      newIndex = (currentIndex + 1) % totalItems;
-    } else {
-      newIndex = (currentIndex - 1 + totalItems) % totalItems;
-    }
-
-    setActiveIndices(prev => ({ ...prev, [sectionTitle]: newIndex }));
   };
 
   const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
@@ -198,6 +209,7 @@ function Gallery() {
 
           const currentIndex = activeIndices[sectionTitle] || 0;
           const currentImage = sectionImages[currentIndex];
+          const currentOpacity = fadeStates[sectionTitle] !== undefined ? fadeStates[sectionTitle] : 1;
 
           return (
             <div 
@@ -233,34 +245,40 @@ function Gallery() {
                   ))}
                 </div>
               ) : (
-                // VISITOR VIEW: Auto-scrolling Slideshow with Hover Pause & Dot Bars
+                // VISITOR VIEW: Auto-scrolling Slideshow with Smooth Cross-Fade and Hover Pause
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', height: '450px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', height: '450px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
                     
                     {/* Left Slider Arrow */}
                     {sectionImages.length > 1 && (
                       <button 
-                        onClick={() => changeSlide(sectionTitle, 'prev', sectionImages.length)}
+                        onClick={() => triggerSmoothTransition(sectionTitle, 'prev', sectionImages.length)}
                         style={{ position: 'absolute', left: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         &#8249;
                       </button>
                     )}
 
-                    {/* Image output block */}
+                    {/* Image Output Block with Smooth Opacity Transition Styling */}
                     {currentImage && (
                       <img 
                         src={currentImage.url} 
                         alt={sectionTitle} 
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'contain',
+                          opacity: currentOpacity,
+                          transition: 'opacity 0.3s ease-in-out' // Smooth cross-fade transition setting
+                        }} 
                       />
                     )}
 
                     {/* Right Slider Arrow */}
                     {sectionImages.length > 1 && (
                       <button 
-                        onClick={() => changeSlide(sectionTitle, 'next', sectionImages.length)}
+                        onClick={() => triggerSmoothTransition(sectionTitle, 'next', sectionImages.length)}
                         style={{ position: 'absolute', right: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         &#8250;
@@ -274,7 +292,7 @@ function Gallery() {
                       {sectionImages.map((_, idx) => (
                         <div 
                           key={idx}
-                          onClick={() => setActiveIndices(prev => ({ ...prev, [sectionTitle]: idx }))}
+                          onClick={() => triggerSmoothTransition(sectionTitle, idx, sectionImages.length)}
                           style={{ 
                             width: idx === currentIndex ? '12px' : '8px', 
                             height: idx === currentIndex ? '12px' : '8px', 
