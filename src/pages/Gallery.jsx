@@ -121,19 +121,37 @@ function Gallery() {
     }
   };
 
-  const handleMoveSection = async (index, direction) => {
-    const updatedOrder = [...sectionOrder];
-    if (direction === 'up' && index > 0) {
-      [updatedOrder[index], updatedOrder[index - 1]] = [updatedOrder[index - 1], updatedOrder[index]];
-    } else if (direction === 'down' && index < updatedOrder.length - 1) {
-      [updatedOrder[index], updatedOrder[index + 1]] = [updatedOrder[index + 1], updatedOrder[index]];
+  const handleMoveSection = async (targetSection, direction) => {
+    // 1. Get the current visible list of sections based on existing images
+    const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
+    
+    // 2. Build a complete baseline layout order to prevent indexing errors
+    let updatedOrder = [...sectionOrder];
+    uniquelyFoundSections.forEach(s => {
+      if (!updatedOrder.includes(s)) {
+        updatedOrder.push(s);
+      }
+    });
+
+    // 3. Find the index inside our master array layout list
+    const realIndex = updatedOrder.indexOf(targetSection);
+    if (realIndex === -1) return;
+
+    // 4. Swap positions based on intent direction boundary limits
+    if (direction === 'up' && realIndex > 0) {
+      [updatedOrder[realIndex], updatedOrder[realIndex - 1]] = [updatedOrder[realIndex - 1], updatedOrder[realIndex]];
+    } else if (direction === 'down' && realIndex < updatedOrder.length - 1) {
+      [updatedOrder[realIndex], updatedOrder[realIndex + 1]] = [updatedOrder[realIndex + 1], updatedOrder[realIndex]];
     } else {
-      return;
+      return; 
     }
+
+    // 5. Update local state and commit layout data strictly to Firestore
     setSectionOrder(updatedOrder);
     try {
       await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
     } catch (err) {
+      console.error("Firestore Write Error Details:", err);
       alert("Failed to save layout order. Verify security rules ruleset.");
     }
   };
@@ -211,11 +229,11 @@ function Gallery() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
                   
-                  {/* Styled Liquidy arrangement buttons */}
+                  {/* Fixed Reordering Controls passing the Title explicitly to prevent template map bugs */}
                   {isAdmin && (
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => handleMoveSection(orderIdx, 'up')} disabled={orderIdx === 0} className="liquid-btn">▲ Move Up</button>
-                      <button onClick={() => handleMoveSection(orderIdx, 'down')} disabled={orderIdx === sortedSections.length - 1} className="liquid-btn">▼ Move Down</button>
+                      <button onClick={() => handleMoveSection(sectionTitle, 'up')} disabled={orderIdx === 0} className="liquid-btn">▲ Move Up</button>
+                      <button onClick={() => handleMoveSection(sectionTitle, 'down')} disabled={orderIdx === sortedSections.length - 1} className="liquid-btn">▼ Move Down</button>
                     </div>
                   )}
                 </div>
