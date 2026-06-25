@@ -32,10 +32,13 @@ function Gallery() {
     if (!imageUrl || !sectionName) return alert("Please provide both an image URL and a section name.");
     setIsUploading(true);
 
+    // Clean up spaces and force a uniform lowercase layout format to avoid duplicate section variants
+    const cleanSectionName = sectionName.trim().replace(/\s+/g, ' ').toLowerCase();
+
     try {
       await addDoc(collection(db, "gallery"), {
         url: imageUrl,
-        caption: sectionName.trim(),
+        caption: cleanSectionName, 
         uploadedAt: new Date().toISOString()
       });
       alert(`Image added to ${sectionName}!`);
@@ -60,7 +63,7 @@ function Gallery() {
     if (window.confirm(`Are you sure you want to delete the ENTIRE "${targetSection}" section and all its images?`)) {
       try {
         const batch = writeBatch(db);
-        const imagesToDelete = images.filter(img => (img.caption || "General") === targetSection);
+        const imagesToDelete = images.filter(img => (img.caption || "general") === targetSection);
         
         imagesToDelete.forEach(img => {
           const imgRef = doc(db, "gallery", img.id);
@@ -68,7 +71,7 @@ function Gallery() {
         });
 
         await batch.commit();
-        alert(`Section "${targetSection}" deleted.`);
+        alert(`Section deleted completely.`);
         fetchImages();
       } catch (error) {
         alert("Failed to delete section.");
@@ -88,7 +91,7 @@ function Gallery() {
     }
   };
 
-  const sections = [...new Set(images.map(img => img.caption || "General"))];
+  const sections = [...new Set(images.map(img => img.caption || "general"))];
 
   return (
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -131,13 +134,14 @@ function Gallery() {
       {/* GALLERY DISPLAY */}
       <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
         {sections.map(sectionTitle => {
-          const sectionImages = images.filter(img => (img.caption || "General") === sectionTitle);
+          const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
 
           return (
             <div key={sectionTitle} className="glass-notice-box" style={{ color: '#333', padding: '30px', position: 'relative' }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0 }}>{sectionTitle}</h2>
+                {/* Visual case adjustment: Capitalizes the output automatically on screen render */}
+                <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
                 {isAdmin && (
                   <button onClick={() => handleDeleteSection(sectionTitle)} className="delete-btn" style={{ padding: '5px 15px', fontSize: '0.9rem' }}>
                     Delete Entire Section
@@ -146,7 +150,7 @@ function Gallery() {
               </div>
               
               {isAdmin ? (
-                // ADMIN VIEW: Wrapping Grid (No hidden overflow, everything is visible for easy deletion)
+                // ADMIN VIEW: Wrapping Grid layout for quick content deletion management
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                   {sectionImages.map(img => (
                     <div key={img.id} style={{ position: 'relative', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
@@ -161,7 +165,7 @@ function Gallery() {
                   ))}
                 </div>
               ) : (
-                // VISITOR VIEW: Horizontal Scroll Carousel
+                // VISITOR VIEW: Clean Horizontal Scroll Carousel Matching Sample Mockup
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   
                   {sectionImages.length > 3 && (
