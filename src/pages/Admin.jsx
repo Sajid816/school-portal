@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse';
 import { db } from '../firebase';
-import { doc, writeBatch, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
+import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
 
 function Admin() {
-  const [students, setStudents] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
-  const [file, setFile] = useState(null);
   const [currentTicker, setCurrentTicker] = useState('');
   const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
   
@@ -24,18 +21,17 @@ function Admin() {
   const [targetSection, setTargetSection] = useState('');
   const [isUploadingContent, setIsUploadingContent] = useState(false);
 
-  // UNIFIED CLASS TAXONOMY SCHEMA (Corrected across all portal modules)
+  // UNIFIED CLASS TAXONOMY SCHEMA
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
   const AVAILABLE_SECTIONS = ["A", "B", "C", "D", "E"];
 
   useEffect(() => { 
-    fetchStudents(); 
     fetchCurrentTicker();
     fetchGallery();
     fetchSectionsConfig();
   }, []);
 
-  // Sync content uploader dropdown state to safe default bounds when target class modifications happen
+  // Sync content uploader dropdown state when target class shifts
   useEffect(() => {
     const activeSections = sectionsMap[targetClass] || [];
     if (activeSections.length > 0) {
@@ -44,17 +40,6 @@ function Admin() {
       setTargetSection('');
     }
   }, [targetClass, sectionsMap]);
-
-  const fetchStudents = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const list = querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(user => user.role === 'student')
-        .sort((a, b) => (a.class || "").localeCompare(b.class) || (a.section || "").localeCompare(b.section));
-      setStudents(list);
-    } catch (err) { console.error(err); }
-  };
 
   const fetchCurrentTicker = async () => {
     try {
@@ -138,7 +123,7 @@ function Admin() {
       if (destination === 'gallery') {
         await addDoc(collection(db, "gallery"), {
           url: imageUrl,
-          caption: contentTitle.trim().toLowerCase(), // Preserves uniform case formatting strings natively
+          caption: contentTitle.trim().toLowerCase(),
           uploadedAt: new Date().toISOString()
         });
         alert("Added to Gallery successfully!");
@@ -178,39 +163,6 @@ function Admin() {
     }
   };
 
-  const deleteStudent = async (email) => {
-    if (window.confirm("Delete this student permanently?")) {
-      await deleteDoc(doc(db, "users", email));
-      fetchStudents();
-    }
-  };
-
-  const processCSV = () => {
-    if (!file) return alert("Please select a file first.");
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const batch = writeBatch(db);
-        results.data.forEach(row => {
-          if (row.email) {
-            batch.set(doc(db, "users", row.email), {
-              fullName: row.fullName,
-              role: row.role,
-              roll: row.roll,
-              class: row.class,
-              section: row.section,
-              email: row.email
-            });
-          }
-        });
-        await batch.commit();
-        alert("Sync complete!");
-        fetchStudents();
-      }
-    });
-  };
-
   const activeForConfigClass = sectionsMap[configSelectedClass] || [];
   const activeForUploaderClass = sectionsMap[targetClass] || [];
 
@@ -218,7 +170,7 @@ function Admin() {
     <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Admin Control Workspace</h1>
       
-      {/* SECTION CONFIGURATION BOX (ANNUAL SETUP INTERFACE BUNDLED IN WORKSPACE) */}
+      {/* SECTION CONFIGURATION BOX */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Manage Class Sections (Annual Setup)</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>
@@ -284,7 +236,6 @@ function Admin() {
               <option value="admissions">Admissions Info Page</option>
             </select>
 
-            {/* DYNAMIC SECTION FALLBACK: Pulls options securely from Admin mappings layout state */}
             {destination === 'teachers' && (
               <>
                 <select className="glass-input" style={{ margin: 0 }} value={targetClass} onChange={e => setTargetClass(e.target.value)}>
@@ -337,49 +288,10 @@ function Admin() {
         <h3>Update News Ticker Message</h3>
         <form onSubmit={handleTickerUpdate}>
           <input type="text" name="tickerText" className="glass-input" defaultValue={currentTicker} placeholder="Type live banner announcement here..." required />
-          <button type="submit" className="login-btn" disabled={isUpdatingTicker} style={{ marginTop: '5px' }}>
+          <button type="submit" className="login-btn" disabled={currentTicker === '' || isUpdatingTicker} style={{ marginTop: '5px' }}>
             Publish Live Message
           </button>
         </form>
-      </div>
-
-      {/* BULK UPLOAD */}
-      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '40px', width: '100%', maxWidth: '900px' }}>
-        <h3>Bulk Upload Students</h3>
-        <p>Ensure your CSV has columns: <b>email, fullName, role, roll, class, section</b></p>
-        <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} style={{ color: '#000', marginBottom: '10px' }} />
-        <button onClick={processCSV} className="login-btn">Upload & Sync</button>
-      </div>
-
-      {/* STUDENT LIST TABLE */}
-      <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px' }}>
-        <h3>Active Students</h3>
-        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-              <th style={{ padding: '10px' }}>Name</th>
-              <th style={{ padding: '10px' }}>Roll</th>
-              <th style={{ padding: '10px' }}>Class</th>
-              <th style={{ padding: '10px' }}>Section</th>
-              <th style={{ padding: '10px' }}>Email</th>
-              <th style={{ padding: '10px' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map(s => (
-              <tr key={s.id} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                <td style={{ padding: '15px' }}>{s.fullName}</td>
-                <td style={{ padding: '15px' }}>{s.roll}</td>
-                <td style={{ padding: '15px' }}>{s.class}</td>
-                <td style={{ padding: '15px' }}>{s.section}</td>
-                <td style={{ padding: '15px' }}>{s.email}</td>
-                <td style={{ padding: '15px' }}>
-                  <button onClick={() => deleteStudent(s.email)} className="delete-btn">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
