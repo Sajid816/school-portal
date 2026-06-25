@@ -104,7 +104,6 @@ function Gallery() {
         uploadedAt: new Date().toISOString()
       });
 
-      // Append section to order mapping layout if completely new
       if (!sectionOrder.includes(cleanSectionName)) {
         const updatedOrder = [...sectionOrder, cleanSectionName];
         setSectionOrder(updatedOrder);
@@ -132,7 +131,11 @@ function Gallery() {
       return;
     }
     setSectionOrder(updatedOrder);
-    await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
+    try {
+      await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
+    } catch (err) {
+      alert("Failed to save layout order. Verify security rules ruleset.");
+    }
   };
 
   const handleDeleteImage = async (id, sectionTitle) => {
@@ -165,7 +168,6 @@ function Gallery() {
 
   const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
   
-  // Sync structural changes with fallback comparison rules
   const sortedSections = uniquelyFoundSections.sort((a, b) => {
     const indexA = sectionOrder.indexOf(a);
     const indexB = sectionOrder.indexOf(b);
@@ -208,11 +210,12 @@ function Gallery() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
-                  {/* Inline Reordering controls available exclusively to Admin */}
+                  
+                  {/* Styled Liquidy arrangement buttons */}
                   {isAdmin && (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button onClick={() => handleMoveSection(orderIdx, 'up')} disabled={orderIdx === 0} style={{ padding: '2px 8px', cursor: 'pointer' }}>▲ Move Up</button>
-                      <button onClick={() => handleMoveSection(orderIdx, 'down')} disabled={orderIdx === sortedSections.length - 1} style={{ padding: '2px 8px', cursor: 'pointer' }}>▼ Move Down</button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handleMoveSection(orderIdx, 'up')} disabled={orderIdx === 0} className="liquid-btn">▲ Move Up</button>
+                      <button onClick={() => handleMoveSection(orderIdx, 'down')} disabled={orderIdx === sortedSections.length - 1} className="liquid-btn">▼ Move Down</button>
                     </div>
                   )}
                 </div>

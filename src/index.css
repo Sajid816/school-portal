@@ -255,3 +255,45 @@ p { font-size: 1.1rem; line-height: 1.6; }
   border-radius: 8px;
   cursor: pointer;
 }
+
+
+/* Liquidy Gel-Glass Button Style */
+.liquid-btn {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 30px; /* Rounded pill shapes look more liquid/fluid */
+  color: #333;
+  font-weight: 600;
+  padding: 6px 16px;
+  cursor: pointer;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15),
+              inset 0 4px 4px 0 rgba(255, 255, 255, 0.3); /* Inside shine effect */
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Fluid elastic transition */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Hovering fluid expanding state */
+.liquid-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.15));
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25),
+              inset 0 6px 6px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px) scale(1.03); /* Slight float bubble effect */
+  color: #000;
+}
+
+/* Pressed gel bubble state */
+.liquid-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 4px 10px 0 rgba(31, 38, 135, 0.2);
+}
+
+/* Disabled layout state */
+.liquid-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
