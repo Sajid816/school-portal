@@ -6,7 +6,7 @@ function Results() {
   const [selectedClass, setSelectedClass] = useState('Playgroup');
   const [selectedSection, setSelectedSection] = useState('');
   const [sectionsMap, setSectionsMap] = useState({});
-  const [resultData, setResultData] = useState(null);
+  const [activePdf, setActivePdf] = useState('');
   const [loading, setLoading] = useState(false);
 
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
@@ -28,28 +28,28 @@ function Results() {
 
   const availableSections = sectionsMap[selectedClass] || [];
 
-  // Reset dropdown index pointer when user flips parent class parameters
   useEffect(() => {
     if (availableSections.length > 0) {
       setSelectedSection(availableSections[0]);
     } else {
       setSelectedSection('');
     }
-    setResultData(null);
+    setActivePdf('');
   }, [selectedClass, sectionsMap]);
 
   const fetchResults = async () => {
     if (!selectedSection) return alert("No active sections mapping found.");
     setLoading(true);
-    setResultData(null);
+    setActivePdf('');
+    
     try {
       const docId = `${selectedClass}_${selectedSection}`;
-      const docSnap = await getDoc(doc(doc(db, "results", docId)));
+      const docSnap = await getDoc(doc(db, "results", docId));
       
-      if (docSnap.exists()) {
-        setResultData(docSnap.data().students);
+      if (docSnap.exists() && docSnap.data().pdfUrl) {
+        setActivePdf(docSnap.data().pdfUrl);
       } else {
-        alert(`No student results uploaded yet for ${selectedClass} - Section ${selectedSection}.`);
+        alert(`No results sheet published yet for ${selectedClass} - Section ${selectedSection}.`);
       }
     } catch (error) {
       console.error("Error fetching results:", error);
@@ -59,8 +59,9 @@ function Results() {
   };
 
   return (
-    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h1>Class Results</h1>
+    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <h1>Class Results Portal</h1>
+      <p style={{ marginBottom: '20px', color: '#ddd' }}>Select a class and section track to view official transcripts</p>
       
       <div className="glass-notice-box" style={{ color: '#333', padding: '20px', width: '100%', maxWidth: '600px', display: 'flex', gap: '10px' }}>
         <select className="glass-input" style={{ margin: 0 }} value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
@@ -82,37 +83,29 @@ function Results() {
         </select>
 
         <button onClick={fetchResults} className="login-btn" style={{ margin: 0, width: 'auto' }} disabled={availableSections.length === 0}>
-          {loading ? "Searching..." : "View"}
+          {loading ? "Loading..." : "View"}
         </button>
       </div>
 
-      {resultData && (
-        <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px', marginTop: '20px' }}>
-          <h3>Results: {selectedClass} - Section {selectedSection}</h3>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-                <th style={{ padding: '10px' }}>Roll</th>
-                <th style={{ padding: '10px' }}>Name</th>
-                <th style={{ padding: '10px' }}>Bangla</th>
-                <th style={{ padding: '10px' }}>English</th>
-                <th style={{ padding: '10px' }}>Math</th>
-                <th style={{ padding: '10px' }}>Total Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resultData.map((student, index) => (
-                <tr key={index} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
-                  <td style={{ padding: '15px' }}>{student.roll || student.studentId}</td>
-                  <td style={{ padding: '15px' }}>{student.studentName}</td>
-                  <td style={{ padding: '15px' }}>{student.bangla}</td>
-                  <td style={{ padding: '15px' }}>{student.english}</td>
-                  <td style={{ padding: '15px' }}>{student.math}</td>
-                  <td style={{ padding: '15px', fontWeight: 'bold' }}>{student.totalGrade}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* SECURE EMBEDDED PDF CANVAS VIEWER FRAME */}
+      {activePdf && (
+        <div className="glass-notice-box" style={{ color: '#333', padding: '20px', width: '100%', maxWidth: '1000px', marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '15px', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
+            <h3 style={{ margin: 0 }}>Transcript: {selectedClass} - Section {selectedSection}</h3>
+            <a href={activePdf} target="_blank" rel="noreferrer" className="liquid-btn" style={{ fontSize: '0.85rem', textDecoration: 'none' }}>
+              Open in New Tab ↗
+            </a>
+          </div>
+
+          <div style={{ width: '100%', height: '70vh', borderRadius: '8px', overflow: 'hidden', border: '1px solid #bbb', background: '#fff' }}>
+            <iframe 
+              title="Class Result Document View"
+              src={activePdf}
+              width="100%" 
+              height="100%" 
+              style={{ border: 'none' }}
+            />
+          </div>
         </div>
       )}
     </div>

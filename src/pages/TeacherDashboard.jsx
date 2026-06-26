@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse';
 import { db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 function TeacherDashboard() {
-  const [file, setFile] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState('');
   const [selectedClass, setSelectedClass] = useState('Playgroup');
   const [selectedSection, setSelectedSection] = useState('');
   const [sectionsMap, setSectionsMap] = useState({});
@@ -27,7 +26,6 @@ function TeacherDashboard() {
     }
   };
 
-  // Automatically update the section dropdown options when the teacher picks a different class
   const availableSections = sectionsMap[selectedClass] || [];
 
   useEffect(() => {
@@ -38,48 +36,44 @@ function TeacherDashboard() {
     }
   }, [selectedClass, sectionsMap]);
 
-  const handleUpload = () => {
-    if (!file) return alert("Please select a CSV file.");
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!pdfUrl.trim()) return alert("Please provide a valid PDF link.");
     if (!selectedSection) return alert("The Admin has not activated any sections for this class yet.");
+    
     setIsUploading(true);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const docId = `${selectedClass}_${selectedSection}`;
-          const docRef = doc(db, "results", docId);
-          
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const confirmOverwrite = window.confirm(
-              `Results for ${selectedClass} - Section ${selectedSection} already exist. Overwrite them?`
-            );
-            if (!confirmOverwrite) {
-              setIsUploading(false);
-              return;
-            }
-          }
-
-          await setDoc(docRef, {
-            class: selectedClass,
-            section: selectedSection,
-            lastUpdated: new Date().toISOString(),
-            students: results.data
-          });
-          
-          alert(`Uploaded results for ${selectedClass} - Section ${selectedSection}`);
-          setFile(null);
-          document.getElementById("csv-file-input").value = "";
-        } catch (error) {
-          console.error(error);
-          alert("Error uploading results to database.");
-        } finally {
+    try {
+      const docId = `${selectedClass}_${selectedSection}`;
+      const docRef = doc(db, "results", docId);
+      
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const confirmOverwrite = window.confirm(
+          `Results for ${selectedClass} - Section ${selectedSection} already exist. Overwrite them?`
+        );
+        if (!confirmOverwrite) {
           setIsUploading(false);
+          return;
         }
       }
-    });
+
+      // Storing the direct URL pointer for the PDF viewer to render natively
+      await setDoc(docRef, {
+        class: selectedClass,
+        section: selectedSection,
+        lastUpdated: new Date().toISOString(),
+        pdfUrl: pdfUrl.trim()
+      });
+      
+      alert(`Published results sheet link for ${selectedClass} - Section ${selectedSection}`);
+      setPdfUrl('');
+    } catch (error) {
+      console.error(error);
+      alert("Error saving result configuration link to database.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -87,47 +81,53 @@ function TeacherDashboard() {
       <h1>Teacher Dashboard</h1>
       
       <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '600px' }}>
-        <h3>Upload Class Results</h3>
-        <p>Your CSV file columns must be: <br/><b>roll, studentName, bangla, english, math, totalGrade</b></p>
+        <h3>Link Class Results Sheet</h3>
+        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '20px' }}>
+          Paste a direct PDF URL or viewable sharing link (Google Drive, OneDrive, etc.) containing the section results.
+        </p>
         
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-          <select className="glass-input" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          
-          {/* Strict Dropdown mapped cleanly from Admin rules */}
-          <select 
-            className="glass-input" 
-            value={selectedSection} 
-            onChange={e => setSelectedSection(e.target.value)}
+        <form onSubmit={handleUpload}>
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+            <select className="glass-input" style={{ margin: 0 }} value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+              {classes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            
+            <select 
+              className="glass-input" 
+              style={{ margin: 0, width: '160px' }}
+              value={selectedSection} 
+              onChange={e => setSelectedSection(e.target.value)}
+              disabled={availableSections.length === 0}
+            >
+              {availableSections.length > 0 ? (
+                availableSections.map(sec => <option key={sec} value={sec}>Section {sec}</option>)
+              ) : (
+                <option value="">No Active Sec</option>
+              )}
+            </select>
+          </div>
+
+          {availableSections.length === 0 && (
+            <p style={{ color: '#d9534f', fontSize: '0.85rem', marginBottom: '15px', fontWeight: 'bold' }}>
+              ⚠️ Notice: Admin needs to activate sections for {selectedClass} before you can publish.
+            </p>
+          )}
+
+          <input 
+            type="text" 
+            className="glass-input"
+            style={{ marginBottom: '20px' }}
+            placeholder="Paste PDF link or shared file link here..."
+            value={pdfUrl}
+            onChange={e => setPdfUrl(e.target.value)}
             disabled={availableSections.length === 0}
-          >
-            {availableSections.length > 0 ? (
-              availableSections.map(sec => <option key={sec} value={sec}>Section {sec}</option>)
-            ) : (
-              <option value="">No Active Sections</option>
-            )}
-          </select>
-        </div>
-
-        {availableSections.length === 0 && (
-          <p style={{ color: '#d9534f', fontSize: '0.85rem', marginBottom: '15px', fontWeight: 'bold' }}>
-            ⚠️ Notice: Admin needs to activate sections for {selectedClass} before you can upload.
-          </p>
-        )}
-
-        <input 
-          id="csv-file-input"
-          type="file" 
-          accept=".csv" 
-          onChange={e => setFile(e.target.files[0])} 
-          style={{ color: '#000', marginBottom: '20px', display: 'block' }} 
-          disabled={availableSections.length === 0}
-        />
-        
-        <button onClick={handleUpload} className="login-btn" disabled={isUploading || availableSections.length === 0}>
-          {isUploading ? "Uploading..." : "Upload Results"}
-        </button>
+            required
+          />
+          
+          <button type="submit" className="login-btn" style={{ margin: 0 }} disabled={isUploading || availableSections.length === 0}>
+            {isUploading ? "Publishing..." : "Publish Results Link"}
+          </button>
+        </form>
       </div>
     </div>
   );
