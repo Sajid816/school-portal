@@ -122,10 +122,8 @@ function Gallery() {
   };
 
   const handleMoveSection = async (targetSection, direction) => {
-    // 1. Get the current visible list of sections based on existing images
     const uniquelyFoundSections = [...new Set(images.map(img => img.caption || "general"))];
     
-    // 2. Build a complete baseline layout order to prevent indexing errors
     let updatedOrder = [...sectionOrder];
     uniquelyFoundSections.forEach(s => {
       if (!updatedOrder.includes(s)) {
@@ -133,11 +131,9 @@ function Gallery() {
       }
     });
 
-    // 3. Find the index inside our master array layout list
     const realIndex = updatedOrder.indexOf(targetSection);
     if (realIndex === -1) return;
 
-    // 4. Swap positions based on intent direction boundary limits
     if (direction === 'up' && realIndex > 0) {
       [updatedOrder[realIndex], updatedOrder[realIndex - 1]] = [updatedOrder[realIndex - 1], updatedOrder[realIndex]];
     } else if (direction === 'down' && realIndex < updatedOrder.length - 1) {
@@ -146,7 +142,6 @@ function Gallery() {
       return; 
     }
 
-    // 5. Update local state and commit layout data strictly to Firestore
     setSectionOrder(updatedOrder);
     try {
       await setDoc(doc(db, "settings", "galleryOrder"), { order: updatedOrder });
@@ -213,7 +208,8 @@ function Gallery() {
       )}
 
       {/* GALLERY DISPLAY */}
-      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+      {/* 1. Changed to flex-wrap and center alignment here */}
+      <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '40px' }}>
         {sortedSections.map((sectionTitle, orderIdx) => {
           const sectionImages = images.filter(img => (img.caption || "general") === sectionTitle);
           if (sectionImages.length === 0) return null;
@@ -223,13 +219,20 @@ function Gallery() {
           const currentOpacity = fadeStates[sectionTitle] !== undefined ? fadeStates[sectionTitle] : 1;
 
           return (
-            <div key={sectionTitle} className="glass-notice-box" style={{ color: '#333', padding: '30px', position: 'relative' }} onMouseEnter={() => setHoveredSection(sectionTitle)} onMouseLeave={() => setHoveredSection(null)}>
+            /* 2. Changed width to exactly 50% minus the gap to fit exactly 2 per row */
+            <div key={sectionTitle} className="glass-notice-box" style={{ 
+              width: 'calc(50% - 20px)', 
+              minWidth: '320px', /* Keeps them from squishing too small on phones */
+              boxSizing: 'border-box', 
+              color: '#333', 
+              padding: '30px', 
+              position: 'relative' 
+            }} onMouseEnter={() => setHoveredSection(sectionTitle)} onMouseLeave={() => setHoveredSection(null)}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <h2 style={{ margin: 0, textTransform: 'capitalize' }}>{sectionTitle}</h2>
                   
-                  {/* Fixed Reordering Controls passing the Title explicitly to prevent template map bugs */}
                   {isAdmin && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => handleMoveSection(sectionTitle, 'up')} disabled={orderIdx === 0} className="liquid-btn">▲ Move Up</button>
@@ -243,7 +246,7 @@ function Gallery() {
               </div>
               
               {isAdmin ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '20px' }}>
                   {sectionImages.map(img => (
                     <div key={img.id} style={{ position: 'relative', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc', background: '#f0f0f0' }}>
                       <img src={img.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -253,15 +256,15 @@ function Gallery() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', height: '450px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', height: '350px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', overflow: 'hidden' }}>
                     {sectionImages.length > 1 && (
-                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'prev', sectionImages.length)} style={{ position: 'absolute', left: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8249;</button>
+                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'prev', sectionImages.length)} style={{ position: 'absolute', left: '10px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8249;</button>
                     )}
                     {currentImage && (
                       <img src={currentImage.url} alt={sectionTitle} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: currentOpacity, transition: 'opacity 0.3s ease-in-out' }} />
                     )}
                     {sectionImages.length > 1 && (
-                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'next', sectionImages.length)} style={{ position: 'absolute', right: '15px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '45px', height: '45px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8250;</button>
+                      <button onClick={() => triggerSmoothTransition(sectionTitle, 'next', sectionImages.length)} style={{ position: 'absolute', right: '10px', zIndex: 10, background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#8250;</button>
                     )}
                   </div>
                   {sectionImages.length > 1 && (
