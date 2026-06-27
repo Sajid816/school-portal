@@ -1,72 +1,114 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
 
-function Gallery() {
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+// 1. Independent Slideshow Component for each group
+function GroupSlideshow({ title, images }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Cycles through the pictures automatically every 3 seconds
   useEffect(() => {
-    const fetchGallery = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "gallery"));
-        setImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
-        console.error("Error loading gallery:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchGallery();
-  }, []);
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+    }, 3000); 
+    return () => clearInterval(interval);
+  }, [images.length]);
 
-  if (loading) {
-    return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading Gallery...</div>;
-  }
+  if (!images || images.length === 0) return null;
 
   return (
-    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      <h1>Campus Gallery</h1>
-      <p style={{ marginBottom: '40px', color: '#ddd' }}>Photos of the campus and student life</p>
-
-      {images.length === 0 ? (
-        <p style={{ fontStyle: 'italic', color: '#ccc' }}>No images uploaded yet.</p>
-      ) : (
-        <div className="glass-notice-box" style={{ width: '100%', maxWidth: '900px', padding: '30px' }}>
-          
-          {/* This is the strict 2-column grid layout */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)', 
-            gap: '20px', 
-            width: '100%' 
-          }}>
-            {images.map((img) => (
-              <div key={img.id} style={{ 
-                borderRadius: '12px', 
-                overflow: 'hidden', 
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.4)',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                <img 
-                  src={img.url} 
-                  alt={img.caption} 
-                  style={{ width: '100%', height: '250px', objectFit: 'cover', display: 'block' }} 
-                />
-                {img.caption && (
-                  <div style={{ padding: '12px', background: 'rgba(255,255,255,0.9)', color: '#333', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem', textTransform: 'capitalize' }}>
-                      {img.caption}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
+    <div style={{ 
+      background: 'rgba(255, 255, 255, 0.1)', 
+      border: '1px solid rgba(255,255,255,0.2)', 
+      borderRadius: '12px', 
+      padding: '15px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      <h3 style={{ margin: '0 0 15px 0', color: '#fff', borderBottom: '2px solid #0056b3', paddingBottom: '5px' }}>
+        {title}
+      </h3>
+      
+      <div style={{ 
+        width: '100%', 
+        aspectRatio: '16/9', 
+        overflow: 'hidden', 
+        borderRadius: '8px',
+        position: 'relative',
+        background: '#000'
+      }}>
+        <img 
+          src={images[currentIndex].url} 
+          alt={`${title} slide ${currentIndex + 1}`} 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+        />
+        
+        {/* Optional: Slide counter at the bottom */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '10px', 
+          right: '10px', 
+          background: 'rgba(0,0,0,0.6)', 
+          color: 'white', 
+          padding: '2px 8px', 
+          borderRadius: '4px',
+          fontSize: '0.8rem' 
+        }}>
+          {currentIndex + 1} / {images.length}
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+// 2. Main Gallery Viewer Component
+function Gallery() {
+  const [groupedImages, setGroupedImages] = useState({});
+
+  // Example fetch simulation - replace this with your Firebase fetch logic
+  useEffect(() => {
+    fetchGalleryData();
+  }, []);
+
+  const fetchGalleryData = async () => {
+    // Assuming your raw data from Firebase looks something like this:
+    const rawData = [
+      { id: 1, title: 'Branch-1', url: 'https://via.placeholder.com/600x400?text=Branch+1+-+Pic+1' },
+      { id: 2, title: 'Branch-1', url: 'https://via.placeholder.com/600x400?text=Branch+1+-+Pic+2' },
+      { id: 3, title: 'Branch-1', url: 'https://via.placeholder.com/600x400?text=Branch+1+-+Pic+3' },
+      { id: 4, title: 'Branch-2', url: 'https://via.placeholder.com/600x400?text=Branch+2+-+Pic+1' },
+      { id: 5, title: 'Branch-2', url: 'https://via.placeholder.com/600x400?text=Branch+2+-+Pic+2' },
+      { id: 6, title: 'Sports Day', url: 'https://via.placeholder.com/600x400?text=Sports+Day+-+Pic+1' },
+    ];
+
+    // Group the raw data by 'title'
+    const groups = rawData.reduce((acc, image) => {
+      if (!acc[image.title]) {
+        acc[image.title] = [];
+      }
+      acc[image.title].push(image);
+      return acc;
+    }, {});
+
+    setGroupedImages(groups);
+  };
+
+  return (
+    <div style={{ padding: '40px 20px', width: '100%', boxSizing: 'border-box', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2 style={{ color: 'white', textAlign: 'center', marginBottom: '30px' }}>School Gallery</h2>
+      
+      {/* This grid forces exactly 2 items per row. 
+        It will drop to 1 item per row automatically on smaller phone screens. 
+      */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+        gap: '30px' 
+      }}>
+        {Object.entries(groupedImages).map(([title, images]) => (
+          <GroupSlideshow key={title} title={title} images={images} />
+        ))}
+      </div>
     </div>
   );
 }

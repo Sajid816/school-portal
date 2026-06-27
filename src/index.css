@@ -298,3 +298,7 @@ p { font-size: 1.1rem; line-height: 1.6; }
   cursor: not-allowed;
   box-shadow: none;
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
