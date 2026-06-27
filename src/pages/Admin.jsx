@@ -15,14 +15,20 @@ function Admin() {
   const [imageUrl, setImageUrl] = useState('');
   const [contentTitle, setContentTitle] = useState('');
   
-  // New Optional Teacher Fields
+  // Optional Teacher Fields
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
 
   const [destination, setDestination] = useState('news');
+  const [targetBranch, setTargetBranch] = useState('kurpar');
   const [targetClass, setTargetClass] = useState('Playgroup');
   const [targetSection, setTargetSection] = useState('');
   const [isUploadingContent, setIsUploadingContent] = useState(false);
+
+  const BRANCHES = [
+    { id: 'kurpar', name: 'হলি চাইল্ড একাডেমি, কুরপাড়' },
+    { id: 'moktarpara', name: 'হলি চাইল্ড একাডেমি, মোক্তারপাড়া' }
+  ];
 
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
   const AVAILABLE_SECTIONS = ["A", "B", "C", "D", "E"];
@@ -113,28 +119,30 @@ function Admin() {
         await addDoc(collection(db, "news"), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
         fetchNews();
       } else if (destination === 'teachers') {
-        const teacherDocId = `${targetClass}_${targetSection}`;
+        const teacherDocId = `${targetBranch}_${targetClass}_${targetSection}`;
         await setDoc(doc(db, "teachers", teacherDocId), { 
           teacherName: contentTitle, 
           photoUrl: imageUrl, 
+          branch: targetBranch,
           class: targetClass, 
           section: targetSection, 
           email: teacherEmail.trim(),
           phone: teacherPhone.trim(),
           lastUpdated: new Date().toISOString() 
         });
-      } else {
-        await addDoc(collection(db, destination), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
       }
+
       alert(`Successfully saved to ${destination}!`);
-      
-      // Reset form
       setImageUrl('');
       setContentTitle('');
       setTeacherEmail('');
       setTeacherPhone('');
-    } catch (error) { alert("Failed to link data."); } 
-    finally { setIsUploadingContent(false); }
+    } catch (error) { 
+      console.error(error);
+      alert("Failed to link data."); 
+    } finally { 
+      setIsUploadingContent(false); 
+    }
   };
 
   const handleDeleteImage = async (id, collectionName) => {
@@ -192,7 +200,10 @@ function Admin() {
 
             {destination === 'teachers' && (
               <>
-                <select className="glass-input" style={{ margin: 0 }} value={targetClass} onChange={e => setTargetClass(e.target.value)}>
+                <select className="glass-input" style={{ margin: 0, width: '220px' }} value={targetBranch} onChange={e => setTargetBranch(e.target.value)}>
+                  {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+                <select className="glass-input" style={{ margin: 0, width: '120px' }} value={targetClass} onChange={e => setTargetClass(e.target.value)}>
                   {classes.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <select className="glass-input" style={{ margin: 0, width: '140px' }} value={targetSection} onChange={e => setTargetSection(e.target.value)} disabled={activeForUploaderClass.length === 0}>
@@ -236,7 +247,7 @@ function Admin() {
       </div>
 
       {/* TICKER MANAGER */}
-      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px' }}>
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Update News Ticker Message</h3>
         <form onSubmit={handleTickerUpdate}>
           <input type="text" name="tickerText" className="glass-input" defaultValue={currentTicker} required />
