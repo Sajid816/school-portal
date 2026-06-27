@@ -14,6 +14,11 @@ function Admin() {
 
   const [imageUrl, setImageUrl] = useState('');
   const [contentTitle, setContentTitle] = useState('');
+  
+  // New Optional Teacher Fields
+  const [teacherEmail, setTeacherEmail] = useState('');
+  const [teacherPhone, setTeacherPhone] = useState('');
+
   const [destination, setDestination] = useState('news');
   const [targetClass, setTargetClass] = useState('Playgroup');
   const [targetSection, setTargetSection] = useState('');
@@ -109,14 +114,26 @@ function Admin() {
         fetchNews();
       } else if (destination === 'teachers') {
         const teacherDocId = `${targetClass}_${targetSection}`;
-        await setDoc(doc(db, "teachers", teacherDocId), { teacherName: contentTitle, photoUrl: imageUrl, class: targetClass, section: targetSection, lastUpdated: new Date().toISOString() });
+        await setDoc(doc(db, "teachers", teacherDocId), { 
+          teacherName: contentTitle, 
+          photoUrl: imageUrl, 
+          class: targetClass, 
+          section: targetSection, 
+          email: teacherEmail.trim(),
+          phone: teacherPhone.trim(),
+          lastUpdated: new Date().toISOString() 
+        });
       } else {
         await addDoc(collection(db, destination), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
       }
       alert(`Successfully saved to ${destination}!`);
+      
+      // Reset form
       setImageUrl('');
       setContentTitle('');
-    } catch (error) { alert("Failed to link image."); } 
+      setTeacherEmail('');
+      setTeacherPhone('');
+    } catch (error) { alert("Failed to link data."); } 
     finally { setIsUploadingContent(false); }
   };
 
@@ -162,7 +179,7 @@ function Admin() {
         <form onSubmit={handleContentUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <input type="text" className="glass-input" style={{ flex: 2, margin: 0, minWidth: '250px' }} placeholder="Paste Image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} required />
-            <input type="text" className="glass-input" style={{ flex: 1, margin: 0, minWidth: '150px' }} placeholder="Title / Caption" value={contentTitle} onChange={(e) => setContentTitle(e.target.value)} required />
+            <input type="text" className="glass-input" style={{ flex: 1, margin: 0, minWidth: '150px' }} placeholder="Title / Caption / Name" value={contentTitle} onChange={(e) => setContentTitle(e.target.value)} required />
           </div>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -184,12 +201,27 @@ function Admin() {
               </>
             )}
           </div>
+
+          {/* Render Email and Phone ONLY if updating teachers */}
+          {destination === 'teachers' && (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#555' }}>Email Address (Optional)</label>
+                 <input type="email" className="glass-input" style={{ margin: 0 }} value={teacherEmail} onChange={e => setTeacherEmail(e.target.value)} />
+              </div>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#555' }}>Phone Number (Optional)</label>
+                 <input type="text" className="glass-input" style={{ margin: 0 }} value={teacherPhone} onChange={e => setTeacherPhone(e.target.value)} />
+              </div>
+            </div>
+          )}
+
           <button type="submit" className="login-btn" style={{ margin: 0, width: '200px' }} disabled={isUploadingContent}>
             {isUploadingContent ? "Linking..." : "Save to Website"}
           </button>
         </form>
 
-        {/* Dynamic Preview Grids Based on Dropdown Selection */}
+        {/* Dynamic Preview Grids */}
         {(destination === 'gallery' || destination === 'news') && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
             {(destination === 'gallery' ? galleryImages : newsImages).map(img => (
