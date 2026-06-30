@@ -18,10 +18,12 @@ function Faculty() {
     const fetchDirectoryAndConfig = async () => {
       setLoading(true);
       try {
+        // Fetch branch-specific sections configuration
         const configSnap = await getDoc(doc(db, "settings", "classSections"));
         if (configSnap.exists()) {
-          setSectionsMap(configSnap.data().mapping || {});
+          setSectionsMap(configSnap.data().branchMapping || {});
         }
+
         const querySnapshot = await getDocs(collection(db, "teachers"));
         setTeachersList(querySnapshot.docs.map(doc => doc.data()));
       } catch (err) { 
@@ -35,15 +37,14 @@ function Faculty() {
 
   if (loading) return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading...</div>;
 
+  const activeBranchSections = sectionsMap[publicBranch] || {};
   const activeBranchTeachers = teachersList.filter(t => t.branch === publicBranch);
 
   return (
-    // Outer flex wrapper centers everything on the page
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '20px', boxSizing: 'border-box' }}>
       <h1>Class Teachers Directory</h1>
       <p style={{ color: '#ddd', marginBottom: '20px' }}>Overview of active faculty instructors</p>
       
-      {/* Branch Tabs */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {BRANCHES.map(branch => (
           <button key={branch.id} onClick={() => setPublicBranch(branch.id)} className="liquid-btn" style={{ 
@@ -55,10 +56,9 @@ function Faculty() {
         ))}
       </div>
 
-      {/* Main List Container: margin: 0 auto centers it perfectly */}
       <div style={{ width: '100%', maxWidth: '750px', margin: '0 auto' }}>
         {classes.map(className => {
-          const activeSections = sectionsMap[className] || [];
+          const activeSections = activeBranchSections[className] || [];
           if (activeSections.length === 0) return null;
           const classTeachers = activeBranchTeachers.filter(t => t.class === className);
 
@@ -73,9 +73,7 @@ function Faculty() {
                       <div style={{ background: '#0056b3', color: 'white', display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '10px' }}>SECTION {sec}</div>
                       {assignment ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                          {assignment.photoUrl && (
-                            <img src={assignment.photoUrl} alt={assignment.teacherName} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }} />
-                          )}
+                          {assignment.photoUrl && <img src={assignment.photoUrl} alt={assignment.teacherName} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }} />}
                           <div>
                             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{assignment.teacherName}</h3>
                             <div style={{ fontSize: '0.85rem', color: '#444' }}>
@@ -95,6 +93,5 @@ function Faculty() {
       </div>
     </div>
   );
-} // <--- THIS BRACE CLOSES THE FUNCTION
-
-export default Faculty; // <--- THIS IS THE FINAL LINE
+}
+export default Faculty;
