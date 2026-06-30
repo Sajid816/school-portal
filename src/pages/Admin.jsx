@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { db, secondaryAuth } from '../firebase'; // Note the new secondaryAuth import
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
 
 function Admin() {
@@ -19,8 +20,6 @@ function Admin() {
   // Optional Teacher Fields
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
-
-  // Uniform Field
   const [uniformGender, setUniformGender] = useState('male');
 
   const [destination, setDestination] = useState('news');
@@ -28,6 +27,13 @@ function Admin() {
   const [targetClass, setTargetClass] = useState('Playgroup');
   const [targetSection, setTargetSection] = useState('');
   const [isUploadingContent, setIsUploadingContent] = useState(false);
+
+  // New Staff Registration State
+  const [staffName, setStaffName] = useState('');
+  const [staffEmailReg, setStaffEmailReg] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [staffRole, setStaffRole] = useState('teacher');
+  const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   const BRANCHES = [
     { id: 'kurpar', name: 'হলি চাইল্ড একাডেমি, কুরপাড়' },
@@ -90,6 +96,42 @@ function Admin() {
       }
     } catch (err) { console.error(err); } 
     finally { setSectionsLoading(false); }
+  };
+
+  // ----- NEW: Staff Account Generator -----
+  const handleCreateStaff = async (e) => {
+    e.preventDefault();
+    setIsCreatingStaff(true);
+    
+    try {
+      // 1. Create user in Firebase Auth using the secondary app
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, staffEmailReg.trim(), staffPassword);
+      const newUid = userCredential.user.uid;
+      
+      // 2. Link their role in Firestore using our primary Admin credentials
+      await setDoc(doc(db, "users", newUid), {
+        fullName: staffName.trim(),
+        email: staffEmailReg.trim(),
+        role: staffRole,
+        createdAt: new Date().toISOString()
+      });
+
+      // 3. Immediately sign out the secondary app so it stays clean
+      await signOut(secondaryAuth);
+      
+      alert(`Successfully created ${staffRole} account for ${staffName}!`);
+      
+      // Clear form
+      setStaffName('');
+      setStaffEmailReg('');
+      setStaffPassword('');
+      setStaffRole('teacher');
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Failed to create staff account.");
+    } finally {
+      setIsCreatingStaff(false);
+    }
   };
 
   const handleTickerUpdate = async (e) => {
@@ -172,10 +214,47 @@ function Admin() {
   const activeForUploaderClass = sectionsMap[targetClass] || [];
 
   return (
-    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
       <h1>Admin Control Workspace</h1>
       
-      {/* SECTION CONFIGURATION BOX */}
+      {/* 1. NEW: STAFF ACCOUNT GENERATOR */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
+        <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>Create Staff Accounts</h3>
+        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Generate secure login credentials for new teachers or website administrators.</p>
+        
+        <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Full Name</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={staffName} onChange={e => setStaffName(e.target.value)} required />
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Role</label>
+              <select className="glass-input" style={{ margin: 0, width: '100%' }} value={staffRole} onChange={e => setStaffRole(e.target.value)}>
+                <option value="teacher">Teacher (Can only upload results)</option>
+                <option value="admin">Administrator (Full Website Access)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Email Address</label>
+              <input type="email" className="glass-input" style={{ margin: 0, width: '100%' }} value={staffEmailReg} onChange={e => setStaffEmailReg(e.target.value)} required />
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Temporary Password</label>
+              <input type="password" minLength="6" className="glass-input" style={{ margin: 0, width: '100%' }} value={staffPassword} onChange={e => setStaffPassword(e.target.value)} required />
+            </div>
+          </div>
+
+          <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto', alignSelf: 'flex-start' }} disabled={isCreatingStaff}>
+            {isCreatingStaff ? "Generating Account..." : "Create Account & Grant Access"}
+          </button>
+        </form>
+      </div>
+
+      {/* 2. SECTION CONFIGURATION BOX */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Manage Class Sections (Annual Setup)</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Check sections to activate them globally.</p>
@@ -196,7 +275,7 @@ function Admin() {
         )}
       </div>
 
-      {/* UNIVERSAL CONTENT MANAGER */}
+      {/* 3. UNIVERSAL CONTENT MANAGER */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Universal Website Content Manager</h3>
         <form onSubmit={handleContentUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -270,7 +349,7 @@ function Admin() {
         )}
       </div>
 
-      {/* TICKER MANAGER */}
+      {/* 4. TICKER MANAGER */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Update News Ticker Message</h3>
         <form onSubmit={handleTickerUpdate}>
