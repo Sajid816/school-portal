@@ -302,3 +302,24 @@ p { font-size: 1.1rem; line-height: 1.6; }
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
+.faculty-container {
+  padding: 40px 20px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto !important; /* Force center */
+}
+
+/* This targets the inner list specifically to stop it from shifting left */
+.faculty-list-wrapper {
+  width: 100%;
+  max-width: 750px;
+  display: flex;
+  flex-direction: column;
+  gap: 35px;
+  margin: 20px auto 0 auto !important; /* Ensures the list itself is centered */
+}

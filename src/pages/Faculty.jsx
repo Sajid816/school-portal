@@ -46,22 +46,24 @@ function Faculty() {
 
   return (
     <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-      <h1 style={{ textAlign: 'center' }}>Class Teachers Directory</h1>
-      <p style={{ color: '#ddd', marginBottom: '20px', textAlign: 'center' }}>Overview of active faculty instructors running our classrooms</p>
+      <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>Class Teachers Directory</h1>
+      <p style={{ color: '#ddd', marginBottom: '30px', textAlign: 'center' }}>Overview of active faculty instructors running our classrooms</p>
       
-      {/* PUBLIC VIEWER TABS - Added width 100% to ensure center alignment */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+      {/* Tab Container */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {BRANCHES.map(branch => (
           <button 
             key={branch.id} 
             onClick={() => setPublicBranch(branch.id)}
             className="liquid-btn"
             style={{ 
-              background: publicBranch === branch.id ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
-              color: publicBranch === branch.id ? '#000' : '#fff',
-              border: publicBranch === branch.id ? '2px solid #0056b3' : '1px solid rgba(255,255,255,0.5)',
-              padding: '10px 20px',
-              fontSize: '1rem'
+              background: publicBranch === branch.id ? 'white' : 'rgba(255,255,255,0.2)',
+              color: publicBranch === branch.id ? '#0056b3' : '#fff',
+              border: '1px solid rgba(255,255,255,0.5)',
+              padding: '12px 25px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer'
             }}
           >
             {branch.name}
@@ -69,17 +71,20 @@ function Faculty() {
         ))}
       </div>
 
-      {/* FIXED CONTAINER: Added margin: '20px auto 0 auto' to guarantee horizontal centering */}
-      <div style={{ width: '100%', maxWidth: '750px', display: 'flex', flexDirection: 'column', gap: '35px', margin: '20px auto 0 auto' }}>
+      {/* Main List Container: Removed fixed width constraints that were squishing it */}
+      <div style={{ width: '100%', maxWidth: '850px', display: 'flex', flexDirection: 'column', gap: '35px' }}>
         {classes.map(className => {
           const activeSections = sectionsMap[className] || [];
-
           if (activeSections.length === 0) return null;
-
           const classTeachers = activeBranchTeachers.filter(t => t.class === className);
 
           return (
-            <div key={className} className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', boxSizing: 'border-box', margin: '0' }}>
+            <div key={className} className="glass-notice-box" style={{ 
+              color: '#333', 
+              padding: '30px', 
+              width: '100%', 
+              boxSizing: 'border-box' 
+            }}>
               <h2 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', margin: '0 0 25px 0', color: '#111' }}>
                 {className}
               </h2>
@@ -89,36 +94,28 @@ function Faculty() {
                   const assignment = classTeachers.find(t => t.section === sec);
                   
                   return (
-                    <div key={sec} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.4)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 4px 10px rgba(0,0,0,0.02)' }}>
-                      
+                    <div key={sec} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.6)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)' }}>
                       <div style={{ display: 'inline-block', alignSelf: 'flex-start', background: '#0056b3', color: 'white', fontWeight: 'bold', padding: '4px 12px', borderRadius: '6px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
                         Section {sec}
                       </div>
                       
                       {assignment ? (
                         <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          
                           {assignment.photoUrl && (
                             <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #0056b3', background: '#fff' }}>
                               <img src={assignment.photoUrl} alt={assignment.teacherName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
                           )}
-                          
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#000' }}>{assignment.teacherName}</h3>
-                            
-                            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '4px', fontSize: '0.9rem', color: '#444' }}>
-                              {assignment.email && <span><b>📧 Email:</b> <a href={`mailto:${assignment.email}`} style={{ color: '#0056b3', textDecoration: 'none' }}>{assignment.email}</a></span>}
-                              {assignment.phone && <span><b>📞 Phone:</b> {assignment.phone}</span>}
-                              {!assignment.email && !assignment.phone && <span style={{ color: '#777', fontStyle: 'italic' }}>No contact details published</span>}
+                            <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#000' }}>{assignment.teacherName}</h3>
+                            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.95rem', color: '#444' }}>
+                              {assignment.email && <span><b>📧</b> {assignment.email}</span>}
+                              {assignment.phone && <span><b>📞</b> {assignment.phone}</span>}
                             </div>
                           </div>
-
                         </div>
                       ) : (
-                        <p style={{ margin: '5px 0 0 0', color: '#777', fontStyle: 'italic', fontSize: '0.95rem' }}>
-                          No class teacher assigned yet for this section track.
-                        </p>
+                        <p style={{ margin: 0, color: '#888', fontStyle: 'italic' }}>No teacher assigned yet.</p>
                       )}
                     </div>
                   );
@@ -127,15 +124,8 @@ function Faculty() {
             </div>
           );
         })}
-
-        {!hasAnyConfig && (
-          <p style={{ textAlign: 'center', color: '#ddd', fontStyle: 'italic' }}>
-            No running class sections have been locked by administration yet.
-          </p>
-        )}
       </div>
     </div>
   );
-}
 
 export default Faculty;
