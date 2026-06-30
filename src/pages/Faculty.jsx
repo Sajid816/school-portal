@@ -46,11 +46,11 @@ function Faculty() {
 
   return (
     <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-      <h1>Class Teachers Directory</h1>
+      <h1 style={{ textAlign: 'center' }}>Class Teachers Directory</h1>
       <p style={{ color: '#ddd', marginBottom: '20px', textAlign: 'center' }}>Overview of active faculty instructors running our classrooms</p>
       
-      {/* PUBLIC VIEWER TABS */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* PUBLIC VIEWER TABS - Added width 100% to ensure center alignment */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
         {BRANCHES.map(branch => (
           <button 
             key={branch.id} 
@@ -69,7 +69,8 @@ function Faculty() {
         ))}
       </div>
 
-      <div style={{ width: '100%', maxWidth: '750px', display: 'flex', flexDirection: 'column', gap: '35px', marginTop: '20px' }}>
+      {/* FIXED CONTAINER: Added margin: '20px auto 0 auto' to guarantee horizontal centering */}
+      <div style={{ width: '100%', maxWidth: '750px', display: 'flex', flexDirection: 'column', gap: '35px', margin: '20px auto 0 auto' }}>
         {classes.map(className => {
           const activeSections = sectionsMap[className] || [];
 
