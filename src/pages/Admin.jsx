@@ -5,6 +5,7 @@ import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'fir
 function Admin() {
   const [galleryImages, setGalleryImages] = useState([]);
   const [newsImages, setNewsImages] = useState([]);
+  const [uniformImages, setUniformImages] = useState([]);
   const [currentTicker, setCurrentTicker] = useState('');
   const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
   
@@ -18,6 +19,9 @@ function Admin() {
   // Optional Teacher Fields
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
+
+  // Uniform Field
+  const [uniformGender, setUniformGender] = useState('male');
 
   const [destination, setDestination] = useState('news');
   const [targetBranch, setTargetBranch] = useState('kurpar');
@@ -37,6 +41,7 @@ function Admin() {
     fetchCurrentTicker();
     fetchGallery();
     fetchNews();
+    fetchUniforms();
     fetchSectionsConfig();
   }, []);
 
@@ -67,6 +72,13 @@ function Admin() {
     try {
       const querySnapshot = await getDocs(collection(db, "news"));
       setNewsImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchUniforms = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "uniforms"));
+      setUniformImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) { console.error(err); }
   };
 
@@ -118,6 +130,9 @@ function Admin() {
       } else if (destination === 'news') {
         await addDoc(collection(db, "news"), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
         fetchNews();
+      } else if (destination === 'uniforms') {
+        await addDoc(collection(db, "uniforms"), { url: imageUrl, title: contentTitle, gender: uniformGender, uploadedAt: new Date().toISOString() });
+        fetchUniforms();
       } else if (destination === 'teachers') {
         const teacherDocId = `${targetBranch}_${targetClass}_${targetSection}`;
         await setDoc(doc(db, "teachers", teacherDocId), { 
@@ -138,7 +153,6 @@ function Admin() {
       setTeacherEmail('');
       setTeacherPhone('');
     } catch (error) { 
-      console.error(error);
       alert("Failed to link data."); 
     } finally { 
       setIsUploadingContent(false); 
@@ -150,6 +164,7 @@ function Admin() {
       await deleteDoc(doc(db, collectionName, id));
       if (collectionName === 'gallery') fetchGallery();
       if (collectionName === 'news') fetchNews();
+      if (collectionName === 'uniforms') fetchUniforms();
     }
   };
 
@@ -196,7 +211,15 @@ function Admin() {
               <option value="news">Home Page News Slider</option>
               <option value="gallery">Photo Gallery</option>
               <option value="teachers">Teachers Directory</option>
+              <option value="uniforms">School Uniforms</option>
             </select>
+
+            {destination === 'uniforms' && (
+              <select className="glass-input" style={{ margin: 0, width: '150px' }} value={uniformGender} onChange={e => setUniformGender(e.target.value)}>
+                <option value="male">Male Uniform</option>
+                <option value="female">Female Uniform</option>
+              </select>
+            )}
 
             {destination === 'teachers' && (
               <>
@@ -213,7 +236,6 @@ function Admin() {
             )}
           </div>
 
-          {/* Render Email and Phone ONLY if updating teachers */}
           {destination === 'teachers' && (
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px' }}>
               <div style={{ flex: 1, minWidth: '200px' }}>
@@ -233,12 +255,14 @@ function Admin() {
         </form>
 
         {/* Dynamic Preview Grids */}
-        {(destination === 'gallery' || destination === 'news') && (
+        {['gallery', 'news', 'uniforms'].includes(destination) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
-            {(destination === 'gallery' ? galleryImages : newsImages).map(img => (
+            {(destination === 'gallery' ? galleryImages : destination === 'news' ? newsImages : uniformImages).map(img => (
               <div key={img.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
                 <img src={img.url} alt={img.title || img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
-                <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{img.title || img.caption}</p>
+                <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {img.title || img.caption} {destination === 'uniforms' && `(${img.gender})`}
+                </p>
                 <button onClick={() => handleDeleteImage(img.id, destination)} style={{ position: 'absolute', top: '5px', right: '5px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>X</button>
               </div>
             ))}
