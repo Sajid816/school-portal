@@ -22,7 +22,6 @@ function Faculty() {
         if (configSnap.exists()) {
           setSectionsMap(configSnap.data().mapping || {});
         }
-
         const querySnapshot = await getDocs(collection(db, "teachers"));
         setTeachersList(querySnapshot.docs.map(doc => doc.data()));
       } catch (err) { 
@@ -31,92 +30,61 @@ function Faculty() {
         setLoading(false);
       }
     };
-
     fetchDirectoryAndConfig();
   }, []);
 
-  if (loading) {
-    return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading Teachers Directory...</div>;
-  }
+  if (loading) return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading...</div>;
 
-  const hasAnyConfig = Object.values(sectionsMap).some(arr => arr && arr.length > 0);
-
-  // Filter teachers globally based on the selected branch tab
   const activeBranchTeachers = teachersList.filter(t => t.branch === publicBranch);
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>Class Teachers Directory</h1>
-      <p style={{ color: '#ddd', marginBottom: '30px', textAlign: 'center' }}>Overview of active faculty instructors running our classrooms</p>
+    // Outer flex wrapper centers everything on the page
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '20px', boxSizing: 'border-box' }}>
+      <h1>Class Teachers Directory</h1>
+      <p style={{ color: '#ddd', marginBottom: '20px' }}>Overview of active faculty instructors</p>
       
-      {/* Tab Container */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Branch Tabs */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {BRANCHES.map(branch => (
-          <button 
-            key={branch.id} 
-            onClick={() => setPublicBranch(branch.id)}
-            className="liquid-btn"
-            style={{ 
-              background: publicBranch === branch.id ? 'white' : 'rgba(255,255,255,0.2)',
-              color: publicBranch === branch.id ? '#0056b3' : '#fff',
-              border: '1px solid rgba(255,255,255,0.5)',
-              padding: '12px 25px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
+          <button key={branch.id} onClick={() => setPublicBranch(branch.id)} className="liquid-btn" style={{ 
+            background: publicBranch === branch.id ? 'white' : 'rgba(255,255,255,0.3)',
+            color: 'black', padding: '10px 20px', cursor: 'pointer', border: 'none', borderRadius: '5px' 
+          }}>
             {branch.name}
           </button>
         ))}
       </div>
 
-      {/* Main List Container: Removed fixed width constraints that were squishing it */}
-      <div style={{ width: '100%', maxWidth: '850px', display: 'flex', flexDirection: 'column', gap: '35px' }}>
+      {/* Main List Container: margin: 0 auto centers it perfectly */}
+      <div style={{ width: '100%', maxWidth: '750px', margin: '0 auto' }}>
         {classes.map(className => {
           const activeSections = sectionsMap[className] || [];
           if (activeSections.length === 0) return null;
           const classTeachers = activeBranchTeachers.filter(t => t.class === className);
 
           return (
-            <div key={className} className="glass-notice-box" style={{ 
-              color: '#333', 
-              padding: '30px', 
-              width: '100%', 
-              boxSizing: 'border-box' 
-            }}>
-              <h2 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', margin: '0 0 25px 0', color: '#111' }}>
-                {className}
-              </h2>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div key={className} className="glass-notice-box" style={{ marginBottom: '30px', padding: '30px', width: '100%', boxSizing: 'border-box' }}>
+              <h2 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>{className}</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
                 {activeSections.map(sec => {
                   const assignment = classTeachers.find(t => t.section === sec);
-                  
                   return (
-                    <div key={sec} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.6)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)' }}>
-                      <div style={{ display: 'inline-block', alignSelf: 'flex-start', background: '#0056b3', color: 'white', fontWeight: 'bold', padding: '4px 12px', borderRadius: '6px', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                        Section {sec}
-                      </div>
-                      
+                    <div key={sec} style={{ padding: '15px', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', border: '1px solid #ddd' }}>
+                      <div style={{ background: '#0056b3', color: 'white', display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '10px' }}>SECTION {sec}</div>
                       {assignment ? (
-                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                           {assignment.photoUrl && (
-                            <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #0056b3', background: '#fff' }}>
-                              <img src={assignment.photoUrl} alt={assignment.teacherName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
+                            <img src={assignment.photoUrl} alt={assignment.teacherName} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }} />
                           )}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#000' }}>{assignment.teacherName}</h3>
-                            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.95rem', color: '#444' }}>
-                              {assignment.email && <span><b>📧</b> {assignment.email}</span>}
-                              {assignment.phone && <span><b>📞</b> {assignment.phone}</span>}
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{assignment.teacherName}</h3>
+                            <div style={{ fontSize: '0.85rem', color: '#444' }}>
+                              {assignment.email && <div>📧 {assignment.email}</div>}
+                              {assignment.phone && <div>📞 {assignment.phone}</div>}
                             </div>
                           </div>
                         </div>
-                      ) : (
-                        <p style={{ margin: 0, color: '#888', fontStyle: 'italic' }}>No teacher assigned yet.</p>
-                      )}
+                      ) : <p style={{ margin: 0, fontSize: '0.9rem', color: '#777' }}>No teacher assigned yet.</p>}
                     </div>
                   );
                 })}
@@ -127,5 +95,6 @@ function Faculty() {
       </div>
     </div>
   );
+} // <--- THIS BRACE CLOSES THE FUNCTION
 
-export default Faculty;
+export default Faculty; // <--- THIS IS THE FINAL LINE
