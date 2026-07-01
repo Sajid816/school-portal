@@ -1,3 +1,4 @@
+// src/pages/Faculty.jsx
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -18,7 +19,6 @@ function Faculty() {
     const fetchDirectoryAndConfig = async () => {
       setLoading(true);
       try {
-        // Fetch branch-specific sections configuration
         const configSnap = await getDoc(doc(db, "settings", "classSections"));
         if (configSnap.exists()) {
           setSectionsMap(configSnap.data().branchMapping || {});

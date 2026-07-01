@@ -1,3 +1,4 @@
+// src/pages/Admin.jsx
 import { useState, useEffect } from 'react';
 import { db, secondaryAuth } from '../firebase'; 
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -6,12 +7,12 @@ import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'fir
 function Admin() {
   const [galleryImages, setGalleryImages] = useState([]);
   const [newsImages, setNewsImages] = useState([]);
-  const [uniformImages, setUniformImages] = useState([]);
   const [notices, setNotices] = useState([]);
   const [currentTicker, setCurrentTicker] = useState('');
   const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
   
   const [sectionsMap, setSectionsMap] = useState({});
+  const [extracurricularsMap, setExtracurricularsMap] = useState({});
   const [sectionsLoading, setSectionsLoading] = useState(true);
   
   const [configSelectedBranch, setConfigSelectedBranch] = useState('kurpar');
@@ -22,7 +23,6 @@ function Admin() {
   
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
-  const [uniformGender, setUniformGender] = useState('male');
 
   const [destination, setDestination] = useState('news');
   const [targetBranch, setTargetBranch] = useState('kurpar');
@@ -42,12 +42,12 @@ function Admin() {
 
   const classes = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
   const AVAILABLE_SECTIONS = ["A", "B", "C", "D", "E"];
+  const AVAILABLE_EXTRAS = ["Drawing", "Music", "Dance", "Spoken English", "Handwriting", "Physical Education", "Recitation"];
 
   useEffect(() => { 
     fetchCurrentTicker();
     fetchGallery();
     fetchNews();
-    fetchUniforms();
     fetchNotices();
     fetchSectionsConfig();
   }, []);
@@ -82,13 +82,6 @@ function Admin() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchUniforms = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "uniforms"));
-      setUniformImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (err) { console.error(err); }
-  };
-
   const fetchNotices = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "notices"));
@@ -101,6 +94,7 @@ function Admin() {
       const docSnap = await getDoc(doc(db, "settings", "classSections"));
       if (docSnap.exists()) {
         setSectionsMap(docSnap.data().branchMapping || {});
+        setExtracurricularsMap(docSnap.data().extracurriculars || {});
       }
     } catch (err) { console.error(err); } 
     finally { setSectionsLoading(false); }
@@ -114,7 +108,6 @@ function Admin() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, staffEmailReg.trim(), staffPassword);
       const newUid = userCredential.user.uid;
       
-      // Hardcoded strictly to Admin
       await setDoc(doc(db, "users", newUid), {
         fullName: staffName.trim(),
         email: staffEmailReg.trim(),
@@ -166,6 +159,23 @@ function Admin() {
     } catch (err) { console.error(err); }
   };
 
+  const handleExtraCheckboxChange = async (extraName) => {
+    const currentBranchExtras = extracurricularsMap[configSelectedBranch] || [];
+    let updatedExtras = [];
+    
+    if (currentBranchExtras.includes(extraName)) {
+      updatedExtras = currentBranchExtras.filter(e => e !== extraName);
+    } else {
+      updatedExtras = [...currentBranchExtras, extraName];
+    }
+    
+    const updatedMap = { ...extracurricularsMap, [configSelectedBranch]: updatedExtras };
+    setExtracurricularsMap(updatedMap);
+    try {
+      await setDoc(doc(db, "settings", "classSections"), { extracurriculars: updatedMap }, { merge: true });
+    } catch (err) { console.error(err); }
+  };
+
   const handleContentUpload = async (e) => {
     e.preventDefault();
     if (!imageUrl) return alert("Please provide a valid URL.");
@@ -182,9 +192,6 @@ function Admin() {
       } else if (destination === 'notices') {
         await addDoc(collection(db, "notices"), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
         fetchNotices();
-      } else if (destination === 'uniforms') {
-        await addDoc(collection(db, "uniforms"), { url: imageUrl, title: contentTitle, gender: uniformGender, uploadedAt: new Date().toISOString() });
-        fetchUniforms();
       } else if (destination === 'teachers') {
         const teacherDocId = `${targetBranch}_${targetClass}_${targetSection}`;
         await setDoc(doc(db, "teachers", teacherDocId), { 
@@ -216,12 +223,12 @@ function Admin() {
       await deleteDoc(doc(db, collectionName, id));
       if (collectionName === 'gallery') fetchGallery();
       if (collectionName === 'news') fetchNews();
-      if (collectionName === 'uniforms') fetchUniforms();
       if (collectionName === 'notices') fetchNotices();
     }
   };
 
   const activeForConfigClass = (sectionsMap[configSelectedBranch] && sectionsMap[configSelectedBranch][configSelectedClass]) || [];
+  const activeExtrasForBranch = extracurricularsMap[configSelectedBranch] || [];
   const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
@@ -254,26 +261,46 @@ function Admin() {
       </div>
 
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
-        <h3>Manage Class Sections (Annual Setup)</h3>
-        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Configure branch-specific class sections to activate them globally.</p>
+        <h3>Manage Academics & Extracurriculars</h3>
+        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Configure branch-specific structures.</p>
         {sectionsLoading ? <p>Loading...</p> : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+            
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
               <select className="glass-input" style={{ margin: 0, flex: 1, minWidth: '200px' }} value={configSelectedBranch} onChange={e => setConfigSelectedBranch(e.target.value)}>
                 {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              <select className="glass-input" style={{ margin: 0, flex: 1, minWidth: '150px' }} value={configSelectedClass} onChange={e => setConfigSelectedClass(e.target.value)}>
-                {classes.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
             </div>
-            <div style={{ display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px', flexWrap: 'wrap' }}>
-              {AVAILABLE_SECTIONS.map(sec => (
-                <label key={sec} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  <input type="checkbox" style={{ transform: 'scale(1.2)' }} checked={activeForConfigClass.includes(sec)} onChange={() => handleCheckboxChange(sec)} />
-                  Section {sec}
-                </label>
-              ))}
+
+            <div>
+              <h4 style={{ margin: '0 0 10px 0', color: '#0056b3' }}>Academic Sections</h4>
+              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <select className="glass-input" style={{ margin: 0, flex: 1, minWidth: '150px' }} value={configSelectedClass} onChange={e => setConfigSelectedClass(e.target.value)}>
+                  {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                {AVAILABLE_SECTIONS.map(sec => (
+                  <label key={sec} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    <input type="checkbox" style={{ transform: 'scale(1.2)' }} checked={activeForConfigClass.includes(sec)} onChange={() => handleCheckboxChange(sec)} />
+                    Section {sec}
+                  </label>
+                ))}
+              </div>
             </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 10px 0', color: '#0056b3' }}>Extracurricular Activities</h4>
+              <div style={{ display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                {AVAILABLE_EXTRAS.map(extra => (
+                  <label key={extra} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    <input type="checkbox" style={{ transform: 'scale(1.2)' }} checked={activeExtrasForBranch.includes(extra)} onChange={() => handleExtraCheckboxChange(extra)} />
+                    {extra}
+                  </label>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
       </div>
@@ -293,15 +320,7 @@ function Admin() {
               <option value="notices">Notice Board (PDF)</option>
               <option value="gallery">Photo Gallery</option>
               <option value="teachers">Teachers Directory</option>
-              <option value="uniforms">School Uniforms</option>
             </select>
-
-            {destination === 'uniforms' && (
-              <select className="glass-input" style={{ margin: 0, width: '150px' }} value={uniformGender} onChange={e => setUniformGender(e.target.value)}>
-                <option value="male">Male Uniform</option>
-                <option value="female">Female Uniform</option>
-              </select>
-            )}
 
             {destination === 'teachers' && (
               <>
@@ -336,9 +355,9 @@ function Admin() {
           </button>
         </form>
 
-        {['gallery', 'news', 'uniforms', 'notices'].includes(destination) && (
+        {['gallery', 'news', 'notices'].includes(destination) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
-            {(destination === 'gallery' ? galleryImages : destination === 'news' ? newsImages : destination === 'notices' ? notices : uniformImages).map(img => (
+            {(destination === 'gallery' ? galleryImages : destination === 'news' ? newsImages : notices).map(img => (
               <div key={img.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
                 {destination !== 'notices' ? (
                   <img src={img.url} alt={img.title || img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
@@ -346,7 +365,7 @@ function Admin() {
                   <div style={{ width: '100%', height: '100px', background: '#0056b3', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontWeight: 'bold' }}>PDF Notice</div>
                 )}
                 <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                  {img.title || img.caption} {destination === 'uniforms' && `(${img.gender})`}
+                  {img.title || img.caption}
                 </p>
                 <button onClick={() => handleDeleteImage(img.id, destination)} style={{ position: 'absolute', top: '5px', right: '5px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>X</button>
               </div>
