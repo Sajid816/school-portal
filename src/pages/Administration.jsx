@@ -5,7 +5,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 function Administration() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [profiles, setProfiles] = useState({});
+  const [profiles, setProfiles] = useState({ branches: {}, governingBody: {} });
   const [isSaving, setIsSaving] = useState(false);
 
   // Structural Taxonomies
@@ -13,9 +13,11 @@ function Administration() {
     { id: 'kurpar', name: 'হলি চাইল্ড একাডেমি, কুরপাড়' },
     { id: 'moktarpara', name: 'হলি চাইল্ড একাডেমি, মোক্তারপাড়া' }
   ];
-  const ROLES = ['Principal', 'Vice Principal', 'Headmaster', 'Assistant Headmaster'];
+  const PRINCIPAL_ROLES = ['Principal', 'Vice Principal', 'Headmaster', 'Assistant Headmaster'];
+  const GOVERNING_ROLES = ['Chairman', 'Managing Director', 'Director'];
 
   // Admin Uploader States
+  const [editMode, setEditMode] = useState('principals'); // 'principals' or 'governing'
   const [adminBranch, setAdminBranch] = useState('kurpar');
   const [selectedRole, setSelectedRole] = useState('Principal');
   const [formData, setFormData] = useState({
@@ -23,6 +25,7 @@ function Administration() {
   });
 
   // Public Viewer State
+  const [publicViewMode, setPublicViewMode] = useState('governing'); // 'governing' or 'principals'
   const [publicBranch, setPublicBranch] = useState('kurpar');
 
   useEffect(() => {
@@ -32,21 +35,39 @@ function Administration() {
     }
   }, []);
 
-  // Sync admin form data when they switch branches or roles
+  // Sync admin form data
   useEffect(() => {
-    if (profiles[adminBranch] && profiles[adminBranch][selectedRole]) {
-      setFormData(profiles[adminBranch][selectedRole]);
+    if (editMode === 'principals') {
+      if (profiles.branches[adminBranch] && profiles.branches[adminBranch][selectedRole]) {
+        setFormData(profiles.branches[adminBranch][selectedRole]);
+      } else {
+        setFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      }
     } else {
-      setFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      if (profiles.governingBody[selectedRole]) {
+        setFormData(profiles.governingBody[selectedRole]);
+      } else {
+        setFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      }
     }
-  }, [adminBranch, selectedRole, profiles]);
+  }, [adminBranch, selectedRole, profiles, editMode]);
+
+  // Adjust default role when toggling edit mode
+  useEffect(() => {
+    if (editMode === 'principals') setSelectedRole(PRINCIPAL_ROLES[0]);
+    else setSelectedRole(GOVERNING_ROLES[0]);
+  }, [editMode]);
 
   const fetchAdministrationData = async () => {
     setLoading(true);
     try {
       const docSnap = await getDoc(doc(db, "settings", "administrationData"));
       if (docSnap.exists()) {
-        setProfiles(docSnap.data().branches || {});
+        const data = docSnap.data();
+        setProfiles({
+          branches: data.branches || {},
+          governingBody: data.governingBody || {}
+        });
       }
     } catch (err) {
       console.error("Error loading administration data:", err);
@@ -59,10 +80,25 @@ function Administration() {
     e.preventDefault();
     setIsSaving(true);
 
-    const updatedProfiles = {
-      ...profiles,
-      [adminBranch]: {
-        ...(profiles[adminBranch] || {}),
+    let updatedProfiles = { ...profiles };
+
+    if (editMode === 'principals') {
+      updatedProfiles.branches = {
+        ...profiles.branches,
+        [adminBranch]: {
+          ...(profiles.branches[adminBranch] || {}),
+          [selectedRole]: {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            contact: formData.contact.trim(),
+            imageUrl: formData.imageUrl.trim(),
+            message: (formData.message || '').trim()
+          }
+        }
+      };
+    } else {
+      updatedProfiles.governingBody = {
+        ...profiles.governingBody,
         [selectedRole]: {
           name: formData.name.trim(),
           email: formData.email.trim(),
@@ -70,13 +106,13 @@ function Administration() {
           imageUrl: formData.imageUrl.trim(),
           message: (formData.message || '').trim()
         }
-      }
-    };
+      };
+    }
 
     try {
-      await setDoc(doc(db, "settings", "administrationData"), { branches: updatedProfiles });
+      await setDoc(doc(db, "settings", "administrationData"), updatedProfiles);
       setProfiles(updatedProfiles);
-      alert(`${selectedRole} for ${BRANCHES.find(b => b.id === adminBranch).name} updated successfully!`);
+      alert(`Profile updated successfully!`);
     } catch (error) {
       console.error(error);
       alert("Failed to update record.");
@@ -89,31 +125,41 @@ function Administration() {
     return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading Administrative Profiles...</div>;
   }
 
-  const activePublicProfiles = profiles[publicBranch] || {};
+  const activePublicProfiles = publicViewMode === 'principals' 
+    ? (profiles.branches[publicBranch] || {}) 
+    : profiles.governingBody;
+
+  const currentDisplayRoles = publicViewMode === 'principals' ? PRINCIPAL_ROLES : GOVERNING_ROLES;
 
   return (
     <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
       <h1>School Administration</h1>
-      <p style={{ marginBottom: '30px', color: '#ddd', textAlign: 'center' }}>Meet the management team steering our institution</p>
+      <p style={{ marginBottom: '30px', color: '#ddd', textAlign: 'center' }}>Meet the leadership team steering our institution</p>
 
       {/* ADMIN EDIT PANEL */}
       {isAdmin && (
         <div className="glass-notice-box" style={{ color: '#333', padding: '30px', width: '100%', maxWidth: '900px', boxSizing: 'border-box', margin: '0 auto 40px auto' }}>
           <h3>Edit Administration Profiles</h3>
           
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <button onClick={() => setEditMode('governing')} className="liquid-btn" style={{ background: editMode === 'governing' ? '#0056b3' : '#ddd', color: editMode === 'governing' ? '#fff' : '#333' }}>Governing Body</button>
+            <button onClick={() => setEditMode('principals')} className="liquid-btn" style={{ background: editMode === 'principals' ? '#0056b3' : '#ddd', color: editMode === 'principals' ? '#fff' : '#333' }}>Principals & Staff</button>
+          </div>
+
           <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Target Branch</label>
-                <select className="glass-input" style={{ margin: 0, width: '100%' }} value={adminBranch} onChange={e => setAdminBranch(e.target.value)}>
-                  {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
+              {editMode === 'principals' && (
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Target Branch</label>
+                  <select className="glass-input" style={{ margin: 0, width: '100%' }} value={adminBranch} onChange={e => setAdminBranch(e.target.value)}>
+                    {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Select Designation</label>
                 <select className="glass-input" style={{ margin: 0, width: '100%' }} value={selectedRole} onChange={e => setSelectedRole(e.target.value)}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  {(editMode === 'principals' ? PRINCIPAL_ROLES : GOVERNING_ROLES).map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
             </div>
@@ -125,12 +171,12 @@ function Administration() {
 
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Email Address</label>
-                <input type="email" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Email Address (Optional)</label>
+                <input type="email" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </div>
               <div style={{ flex: 1, minWidth: '200px' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Contact Number</label>
-                <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} required />
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Contact Number (Optional)</label>
+                <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
               </div>
             </div>
 
@@ -145,35 +191,48 @@ function Administration() {
             </div>
 
             <button type="submit" className="login-btn" style={{ margin: 0, alignSelf: 'flex-end', width: 'auto' }} disabled={isSaving}>
-              {isSaving ? "Saving..." : `Update ${selectedRole}`}
+              {isSaving ? "Saving..." : `Update Profile`}
             </button>
           </form>
         </div>
       )}
 
-      {/* PUBLIC VIEWER TABS */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {BRANCHES.map(branch => (
-          <button 
-            key={branch.id} 
-            onClick={() => setPublicBranch(branch.id)}
-            className="liquid-btn"
-            style={{ 
-              background: publicBranch === branch.id ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
-              color: publicBranch === branch.id ? '#000' : '#fff',
-              border: publicBranch === branch.id ? '2px solid #0056b3' : '1px solid rgba(255,255,255,0.5)',
-              padding: '10px 20px',
-              fontSize: '1rem'
-            }}
-          >
-            {branch.name}
-          </button>
-        ))}
+      {/* PUBLIC VIEWER TOGGLES */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button 
+          onClick={() => setPublicViewMode('governing')}
+          className="liquid-btn"
+          style={{ background: publicViewMode === 'governing' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)', color: publicViewMode === 'governing' ? '#000' : '#fff', padding: '12px 25px', fontSize: '1.1rem', fontWeight: 'bold' }}
+        >
+          Governing Body
+        </button>
+        <button 
+          onClick={() => setPublicViewMode('principals')}
+          className="liquid-btn"
+          style={{ background: publicViewMode === 'principals' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)', color: publicViewMode === 'principals' ? '#000' : '#fff', padding: '12px 25px', fontSize: '1.1rem', fontWeight: 'bold' }}
+        >
+          Principals & VPs
+        </button>
       </div>
+
+      {publicViewMode === 'principals' && (
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {BRANCHES.map(branch => (
+            <button 
+              key={branch.id} 
+              onClick={() => setPublicBranch(branch.id)}
+              className="liquid-btn"
+              style={{ background: publicBranch === branch.id ? '#0056b3' : 'rgba(255,255,255,0.2)', color: '#fff', border: publicBranch === branch.id ? '2px solid #fff' : '1px solid transparent', padding: '8px 16px', fontSize: '0.9rem' }}
+            >
+              {branch.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* PUBLIC VIEW CARDS */}
       <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', gap: '30px', alignItems: 'center' }}>
-        {ROLES.map(role => {
+        {currentDisplayRoles.map(role => {
           const profile = activePublicProfiles[role];
           if (!profile || !profile.name) return null;
 
@@ -194,17 +253,16 @@ function Administration() {
                 )}
 
                 <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#444' }}>
-                  <div><b>📧 Email:</b> <a href={`mailto:${profile.email}`} style={{ color: '#0056b3', textDecoration: 'none' }}>{profile.email}</a></div>
-                  <div><b>📞 Contact:</b> {profile.contact}</div>
+                  {profile.email && <div><b>📧 Email:</b> <a href={`mailto:${profile.email}`} style={{ color: '#0056b3', textDecoration: 'none' }}>{profile.email}</a></div>}
+                  {profile.contact && <div><b>📞 Contact:</b> {profile.contact}</div>}
                 </div>
               </div>
             </div>
           );
         })}
         
-        {/* Fallback if branch is completely empty */}
         {Object.keys(activePublicProfiles).length === 0 && (
-          <p style={{ fontStyle: 'italic', color: '#ccc' }}>No administration profiles have been uploaded for this branch yet.</p>
+          <p style={{ fontStyle: 'italic', color: '#ccc', textAlign: 'center' }}>No administration profiles have been uploaded for this section yet.</p>
         )}
       </div>
     </div>

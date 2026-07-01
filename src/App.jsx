@@ -19,7 +19,6 @@ function Navbar() {
   const location = useLocation();
   const [authData, setAuthData] = useState({ uid: localStorage.getItem('uid'), role: localStorage.getItem('role') });
   
-  // Login Dropdown States
   const [showLogin, setShowLogin] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +30,6 @@ function Navbar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Close login dropdown if clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (loginRef.current && !loginRef.current.contains(event.target)) {
@@ -55,10 +53,10 @@ function Navbar() {
         const data = docSnap.data();
         localStorage.setItem('uid', uid);
         localStorage.setItem('role', data.role);
-        localStorage.setItem('name', data.fullName || "Staff");
+        localStorage.setItem('name', data.fullName || "Admin");
         window.location.reload();
       } else {
-        setError("Staff profile not found.");
+        setError("Admin profile not found.");
       }
     } catch (err) { 
       setError('Invalid email or password.'); 
@@ -79,12 +77,9 @@ function Navbar() {
         <Link to="/administration" className={location.pathname === '/administration' ? 'active' : ''}>Administration</Link>
         <Link to="/faculty" className={location.pathname === '/faculty' ? 'active' : ''}>Teachers</Link>
         <Link to="/education" className={location.pathname === '/education' ? 'active' : ''}>Education</Link>
-        <Link to="/admissions" className={location.pathname === '/admissions' ? 'active' : ''}>Admissions</Link>
         <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>Gallery</Link>
         <Link to="/contact" className={location.pathname === '/contact' ? 'active' : ''}>Contact</Link>
-        <Link to="/results" className={location.pathname === '/results' ? 'active' : ''}>Results</Link>
         
-        {authData.uid && authData.role === 'teacher' && <Link to="/teacher" className={location.pathname === '/teacher' ? 'active' : ''}>Teacher Dashboard</Link>}
         {authData.uid && authData.role === 'admin' && <Link to="/admin" className={location.pathname === '/admin' ? 'active' : ''}>Admin Panel</Link>}
       </div>
 
@@ -97,14 +92,13 @@ function Navbar() {
             className="liquid-btn" 
             style={{ fontSize: '0.9rem', padding: '8px 20px', background: showLogin ? 'rgba(255,255,255,0.8)' : '' }}
           >
-            Staff Login
+            Admin Login
           </button>
         )}
 
-        {/* Floating Glassy Login Modal */}
         {showLogin && !authData.uid && (
           <div className="glass-notice-box" style={{ position: 'absolute', top: '50px', right: '0', width: '300px', padding: '25px', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '1.2rem', color: '#111' }}>Portal Access</h3>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '1.2rem', color: '#111' }}>System Access</h3>
             {error && <p style={{ color: '#d9534f', fontWeight: 'bold', fontSize: '0.85rem', margin: '0 0 10px 0' }}>{error}</p>}
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input type="email" name="email" placeholder="Email Address" className="glass-input" style={{ margin: 0, padding: '10px' }} required />
@@ -129,12 +123,14 @@ function App() {
         <Route path="/administration" element={<Administration />} />
         <Route path="/faculty" element={<Faculty />} />
         <Route path="/education" element={<Education />} />
-        <Route path="/teacher" element={<TeacherDashboard />} />
-        <Route path="/admissions" element={<Admissions />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/results" element={<Results />} />
         <Route path="/admin" element={<Admin />} />
+        
+        {/* Hidden Routes */}
+        <Route path="/teacher" element={<TeacherDashboard />} />
+        <Route path="/admissions" element={<Admissions />} />
+        <Route path="/results" element={<Results />} />
       </Routes>
     </Router>
   );
