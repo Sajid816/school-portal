@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, secondaryAuth } from '../firebase'; // Note the new secondaryAuth import
+import { db, secondaryAuth } from '../firebase'; 
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
 
@@ -12,6 +12,9 @@ function Admin() {
   
   const [sectionsMap, setSectionsMap] = useState({});
   const [sectionsLoading, setSectionsLoading] = useState(true);
+  
+  // Section Configuration States
+  const [configSelectedBranch, setConfigSelectedBranch] = useState('kurpar');
   const [configSelectedClass, setConfigSelectedClass] = useState('Playgroup');
 
   const [imageUrl, setImageUrl] = useState('');
@@ -52,13 +55,14 @@ function Admin() {
   }, []);
 
   useEffect(() => {
-    const activeSections = sectionsMap[targetClass] || [];
+    // Determine available sections for the uploader dropdown based on branch and class
+    const activeSections = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
     if (activeSections.length > 0) {
       setTargetSection(activeSections[0]);
     } else {
       setTargetSection('');
     }
-  }, [targetClass, sectionsMap]);
+  }, [targetBranch, targetClass, sectionsMap]);
 
   const fetchCurrentTicker = async () => {
     try {
@@ -92,7 +96,8 @@ function Admin() {
     try {
       const docSnap = await getDoc(doc(db, "settings", "classSections"));
       if (docSnap.exists()) {
-        setSectionsMap(docSnap.data().mapping || {});
+        // Load nested branch mapping
+        setSectionsMap(docSnap.data().branchMapping || {});
       }
     } catch (err) { console.error(err); } 
     finally { setSectionsLoading(false); }
@@ -104,11 +109,9 @@ function Admin() {
     setIsCreatingStaff(true);
     
     try {
-      // 1. Create user in Firebase Auth using the secondary app
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, staffEmailReg.trim(), staffPassword);
       const newUid = userCredential.user.uid;
       
-      // 2. Link their role in Firestore using our primary Admin credentials
       await setDoc(doc(db, "users", newUid), {
         fullName: staffName.trim(),
         email: staffEmailReg.trim(),
@@ -116,12 +119,10 @@ function Admin() {
         createdAt: new Date().toISOString()
       });
 
-      // 3. Immediately sign out the secondary app so it stays clean
       await signOut(secondaryAuth);
       
       alert(`Successfully created ${staffRole} account for ${staffName}!`);
       
-      // Clear form
       setStaffName('');
       setStaffEmailReg('');
       setStaffPassword('');
@@ -145,17 +146,26 @@ function Admin() {
   };
 
   const handleCheckboxChange = async (sectionLetter) => {
-    const currentSections = sectionsMap[configSelectedClass] || [];
+    // Extract current branch's mapping, or start a new object
+    const branchData = sectionsMap[configSelectedBranch] || {};
+    const currentSections = branchData[configSelectedClass] || [];
+    
     let updatedSections = [];
     if (currentSections.includes(sectionLetter)) {
       updatedSections = currentSections.filter(s => s !== sectionLetter);
     } else {
       updatedSections = [...currentSections, sectionLetter].sort();
     }
-    const updatedMap = { ...sectionsMap, [configSelectedClass]: updatedSections };
+    
+    // Nest the updated class array back into the specific branch object
+    const updatedBranchData = { ...branchData, [configSelectedClass]: updatedSections };
+    const updatedMap = { ...sectionsMap, [configSelectedBranch]: updatedBranchData };
+    
     setSectionsMap(updatedMap);
+    
     try {
-      await setDoc(doc(db, "settings", "classSections"), { mapping: updatedMap });
+      // Save entire nested structure to branchMapping field
+      await setDoc(doc(db, "settings", "classSections"), { branchMapping: updatedMap }, { merge: true });
     } catch (err) { console.error(err); }
   };
 
@@ -210,8 +220,9 @@ function Admin() {
     }
   };
 
-  const activeForConfigClass = sectionsMap[configSelectedClass] || [];
-  const activeForUploaderClass = sectionsMap[targetClass] || [];
+  // Derive active sections for the exact selected branch and class combinations
+  const activeForConfigClass = (sectionsMap[configSelectedBranch] && sectionsMap[configSelectedBranch][configSelectedClass]) || [];
+  const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
     <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
@@ -257,12 +268,19 @@ function Admin() {
       {/* 2. SECTION CONFIGURATION BOX */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Manage Class Sections (Annual Setup)</h3>
-        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Check sections to activate them globally.</p>
+        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Configure branch-specific class sections to activate them globally.</p>
         {sectionsLoading ? <p>Loading...</p> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <select className="glass-input" style={{ margin: 0, width: '100%' }} value={configSelectedClass} onChange={e => setConfigSelectedClass(e.target.value)}>
-              {classes.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              <select className="glass-input" style={{ margin: 0, flex: 1, minWidth: '200px' }} value={configSelectedBranch} onChange={e => setConfigSelectedBranch(e.target.value)}>
+                {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <select className="glass-input" style={{ margin: 0, flex: 1, minWidth: '150px' }} value={configSelectedClass} onChange={e => setConfigSelectedClass(e.target.value)}>
+                {classes.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
             <div style={{ display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.03)', padding: '15px', borderRadius: '8px', flexWrap: 'wrap' }}>
               {AVAILABLE_SECTIONS.map(sec => (
                 <label key={sec} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -271,6 +289,7 @@ function Admin() {
                 </label>
               ))}
             </div>
+            
           </div>
         )}
       </div>
