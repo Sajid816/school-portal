@@ -91,7 +91,10 @@ function Contact() {
   }
 
   return (
-    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' backgroundImage: 'url("/pictures/contact.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'}}>
       <h1>Contact Us</h1>
       <p style={{ marginBottom: '30px', color: '#ddd' }}>Get in touch with our institutional campus branches</p>
 
