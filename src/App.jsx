@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 import Home from './pages/Home';
 import Administration from './pages/Administration';
+import Notice from './pages/Notice';
 import Education from './pages/Education';
 import TeacherDashboard from './pages/TeacherDashboard';
 import Admissions from './pages/Admissions';
@@ -75,6 +76,7 @@ function Navbar() {
       <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', flex: 1, justifyContent: 'center' }}>
         <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Home</Link>
         <Link to="/administration" className={location.pathname === '/administration' ? 'active' : ''}>Administration</Link>
+        <Link to="/notice" className={location.pathname === '/notice' ? 'active' : ''}>Notice</Link>
         <Link to="/faculty" className={location.pathname === '/faculty' ? 'active' : ''}>Teachers</Link>
         <Link to="/education" className={location.pathname === '/education' ? 'active' : ''}>Education</Link>
         <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>Gallery</Link>
@@ -121,6 +123,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/administration" element={<Administration />} />
+        <Route path="/notice" element={<Notice />} />
         <Route path="/faculty" element={<Faculty />} />
         <Route path="/education" element={<Education />} />
         <Route path="/gallery" element={<Gallery />} />

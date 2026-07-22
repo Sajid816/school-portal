@@ -14,10 +14,11 @@ body {
 body::before {
     content: "";
     position: fixed;
-    top: -20px; left: -20px; right: -20px; bottom: -20px;
-    /* Point the path cleanly to the root directory file layout */
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Temporarily disabled global background & blur:
     background: url('/Web_BG.png') center/cover no-repeat;
     filter: blur(12px);
+    */
     z-index: -1;
 }
 

@@ -1,4 +1,3 @@
-// src/pages/Admin.jsx
 import { useState, useEffect } from 'react';
 import { db, secondaryAuth } from '../firebase'; 
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -232,7 +231,7 @@ function Admin() {
   const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/admin.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
       <h1>Admin Control Workspace</h1>
       
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
@@ -362,7 +361,7 @@ function Admin() {
                 {destination !== 'notices' ? (
                   <img src={img.url} alt={img.title || img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100px', background: '#0056b3', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontWeight: 'bold' }}>PDF Notice</div>
+                  <div style={{ width: '100%', height: '100px', background: '#0056b3', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontWeight: 'bold', textAlign: 'center', padding: '10px', boxSizing: 'border-box' }}>{img.title || 'PDF Notice'}</div>
                 )}
                 <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                   {img.title || img.caption}
