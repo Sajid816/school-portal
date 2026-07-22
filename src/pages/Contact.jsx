@@ -87,7 +87,7 @@ function Contact() {
   };
 
   if (loading) {
-    return <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>Loading Contact Information...</div>;
+    return <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/contact.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>Loading Contact Information...</div>;
   }
 
   return (
