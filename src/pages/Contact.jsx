@@ -91,10 +91,8 @@ function Contact() {
   }
 
   return (
-    <div style={{ padding: '40px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' backgroundImage: 'url("/pictures/contact.jpg")',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat'}}>
+    // ✅ FIXED
+<div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/contact.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
       <h1>Contact Us</h1>
       <p style={{ marginBottom: '30px', color: '#ddd' }}>Get in touch with our institutional campus branches</p>
 
