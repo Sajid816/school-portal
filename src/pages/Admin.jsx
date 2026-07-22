@@ -233,7 +233,7 @@ function Admin() {
   return (
     <div style={{ 
       padding: '40px 20px', 
-      color: 'white', 
+      color: '#222', 
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
