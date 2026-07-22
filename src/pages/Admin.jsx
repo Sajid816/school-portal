@@ -34,6 +34,13 @@ function Admin() {
   const [staffPassword, setStaffPassword] = useState('');
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
+  // Home Page Footer States
+  const [footerKurpar, setFooterKurpar] = useState('');
+  const [footerMuktarpara, setFooterMuktarpara] = useState('');
+  const [footerFacebook, setFooterFacebook] = useState('');
+  const [footerEmail, setFooterEmail] = useState('');
+  const [isUpdatingFooter, setIsUpdatingFooter] = useState(false);
+
   const BRANCHES = [
     { id: 'kurpar', name: 'হলি চাইল্ড একাডেমি, কুরপাড়' },
     { id: 'moktarpara', name: 'হলি চাইল্ড একাডেমি, মোক্তারপাড়া' }
@@ -49,6 +56,7 @@ function Admin() {
     fetchNews();
     fetchNotices();
     fetchSectionsConfig();
+    fetchFooterConfig();
   }, []);
 
   useEffect(() => {
@@ -59,6 +67,19 @@ function Admin() {
       setTargetSection('');
     }
   }, [targetBranch, targetClass, sectionsMap]);
+
+  const fetchFooterConfig = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, "settings", "footerContact"));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setFooterKurpar(data.kurparPhone || '');
+        setFooterMuktarpara(data.muktarparaPhone || '');
+        setFooterFacebook(data.facebook || '');
+        setFooterEmail(data.email || '');
+      }
+    } catch (err) { console.error(err); }
+  };
 
   const fetchCurrentTicker = async () => {
     try {
@@ -136,6 +157,21 @@ function Admin() {
       alert("News ticker updated successfully!");
     } catch (error) { alert("Failed to update ticker."); }
     finally { setIsUpdatingTicker(false); }
+  };
+
+  const handleFooterUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdatingFooter(true);
+    try {
+      await setDoc(doc(db, "settings", "footerContact"), { 
+        kurparPhone: footerKurpar.trim(),
+        muktarparaPhone: footerMuktarpara.trim(),
+        facebook: footerFacebook.trim(),
+        email: footerEmail.trim()
+      });
+      alert("Home Page Footer updated successfully!");
+    } catch (error) { alert("Failed to update footer."); }
+    finally { setIsUpdatingFooter(false); }
   };
 
   const handleCheckboxChange = async (sectionLetter) => {
@@ -231,21 +267,7 @@ function Admin() {
   const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
-    <div style={{ 
-      padding: '40px 20px', 
-      color: '#222', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      width: '100%', 
-      minHeight: '100vh', 
-      boxSizing: 'border-box',
-      backgroundImage: 'url("/pictures/administration1.jpg")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed'
-    }}>
+    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/admin.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
       <h1>Admin Control Workspace</h1>
       
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
@@ -269,6 +291,37 @@ function Admin() {
           </div>
           <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto', alignSelf: 'flex-start' }} disabled={isCreatingStaff}>
             {isCreatingStaff ? "Generating Account..." : "Create Admin Access"}
+          </button>
+        </form>
+      </div>
+
+      {/* NEW: HOME PAGE FOOTER EDITOR */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
+        <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>Update Home Page Footer Contact</h3>
+        
+        <form onSubmit={handleFooterUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Contact (Kurpar)</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={footerKurpar} onChange={e => setFooterKurpar(e.target.value)} placeholder="e.g. 017XXXXXX" />
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Contact (Muktarpara)</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={footerMuktarpara} onChange={e => setFooterMuktarpara(e.target.value)} placeholder="e.g. 018XXXXXX" />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Facebook Page URL</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={footerFacebook} onChange={e => setFooterFacebook(e.target.value)} placeholder="https://facebook.com/..." />
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Email Address</label>
+              <input type="email" className="glass-input" style={{ margin: 0, width: '100%' }} value={footerEmail} onChange={e => setFooterEmail(e.target.value)} placeholder="info@school.com" />
+            </div>
+          </div>
+          <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto', alignSelf: 'flex-start' }} disabled={isUpdatingFooter}>
+            {isUpdatingFooter ? "Updating Footer..." : "Save Footer Info"}
           </button>
         </form>
       </div>

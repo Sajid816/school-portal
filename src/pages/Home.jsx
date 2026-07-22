@@ -1,24 +1,25 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-// import { collection, getDocs } from 'firebase/firestore'; // Uncomment if restoring news/notices
 
 function Home() {
   const [tickerMessage, setTickerMessage] = useState('Loading announcements...');
   const [principals, setPrincipals] = useState([]);
   const [showSplash, setShowSplash] = useState(true);
   
-  /* --- COMMENTED OUT: Previous State Variables --- 
-  const [newsImages, setNewsImages] = useState([]);
-  const [notices, setNotices] = useState([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  ------------------------------------------------ */
+  // New state for the dedicated footer
+  const [footerData, setFooterData] = useState({
+    kurparPhone: '',
+    muktarparaPhone: '',
+    facebook: '',
+    email: ''
+  });
 
   // Splash Screen Timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 3500); // 3.5 seconds
+    }, 3500); 
     return () => clearTimeout(timer);
   }, []);
 
@@ -56,39 +57,18 @@ function Home() {
     fetchPrincipals();
   }, []);
 
-  /* --- COMMENTED OUT: News & Notices Fetching & Logic ---
+  // Fetch Home Page Footer Data
   useEffect(() => {
-    const fetchNews = async () => {
+    const fetchFooter = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "news"));
-        const images = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        images.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-        setNewsImages(images);
+        const docSnap = await getDoc(doc(db, "settings", "footerContact"));
+        if (docSnap.exists()) {
+          setFooterData(docSnap.data());
+        }
       } catch (err) { console.error(err); }
     };
-    fetchNews();
+    fetchFooter();
   }, []);
-
-  useEffect(() => {
-    const fetchNotices = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "notices"));
-        const fetchedNotices = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedNotices.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-        setNotices(fetchedNotices);
-      } catch (err) { console.error(err); }
-    };
-    fetchNotices();
-  }, []);
-
-  useEffect(() => {
-    if (newsImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % newsImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [newsImages]);
-  --------------------------------------------------------- */
 
   // 1. SPLASH SCREEN RENDER
   if (showSplash) {
@@ -110,10 +90,9 @@ function Home() {
           padding: '50px 80px', 
           textAlign: 'center', 
           background: 'rgba(255, 255, 255, 0.85)',
-          animation: 'fadeInOut 3.5s ease-in-out' // Optional: if you add a css animation
+          animation: 'fadeInOut 3.5s ease-in-out'
         }}>
           <h1 style={{ color: '#111', fontSize: '3.5rem', margin: '0' }}>Welcome to Holy Child Academy</h1>
-          {/* Subtitle removed as requested */}
         </div>
       </div>
     );
@@ -142,9 +121,9 @@ function Home() {
         </marquee>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', gap: '50px', alignItems: 'center', padding: '0 20px' }}>
+      <div style={{ width: '100%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', gap: '50px', alignItems: 'center', padding: '0 20px', flex: 1 }}>
         
-        {/* Principals Section - Prominent & Centered */}
+        {/* Principals Section */}
         {principals.length > 0 && (
           <div style={{ width: '100%', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '40px' }}>
             {principals.map((principal, idx) => (
@@ -197,66 +176,6 @@ function Home() {
           </div>
         )}
 
-        {/* --- COMMENTED OUT: Dynamic News Image Canvas ---
-        {newsImages.length > 0 && (
-          <div style={{ width: '100%', boxSizing: 'border-box', position: 'relative' }}>
-            <div style={{ position: 'relative', width: '100%', height: '600px', borderRadius: '12px', overflow: 'hidden', background: '#000', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-              {newsImages.map((img, index) => (
-                <div 
-                  key={img.id} 
-                  style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    opacity: index === currentSlide ? 1 : 0,
-                    transition: 'opacity 1.5s ease-in-out',
-                    zIndex: index === currentSlide ? 10 : 1
-                  }}
-                >
-                  <img src={img.url} alt={img.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {img.title && (
-                    <div style={{ position: 'absolute', bottom: '30px', left: '30px', right: '30px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', color: 'white', padding: '20px', borderRadius: '12px' }}>
-                      <h2 style={{ margin: 0, fontSize: '1.8rem', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{img.title}</h2>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            {newsImages.length > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
-                {newsImages.map((_, i) => (
-                  <div key={i} onClick={() => setCurrentSlide(i)} style={{ width: '15px', height: '15px', borderRadius: '50%', background: i === currentSlide ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'background 0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        ----------------------------------------------------- */}
-
-
-        {/* --- COMMENTED OUT: Home Page Notice Board ---
-        <div className="glass-notice-box" style={{ width: '100%', padding: '30px', boxSizing: 'border-box' }}>
-          <h2 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '10px', color: '#111', margin: '0 0 25px 0' }}>📌 Official Notice Board</h2>
-          {notices.length === 0 ? (
-            <p style={{ color: '#777', fontStyle: 'italic' }}>No active notices at this time.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {notices.map(notice => (
-                <div key={notice.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.7)', padding: '15px 20px', borderRadius: '8px', border: '1px solid #ddd', flexWrap: 'wrap', gap: '15px' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 5px 0', color: '#222', fontSize: '1.1rem' }}>{notice.title}</h3>
-                    <span style={{ fontSize: '0.85rem', color: '#666' }}>Posted: {new Date(notice.uploadedAt).toLocaleDateString()}</span>
-                  </div>
-                  <a href={notice.url} target="_blank" rel="noreferrer" className="liquid-btn" style={{ padding: '8px 16px', fontSize: '0.9rem', textDecoration: 'none', background: '#0056b3', color: 'white' }}>
-                    Download PDF ⬇
-                  </a>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        -------------------------------------------------- */}
-
-
         {/* About Us Section */}
         <div style={{ 
           width: '100%', 
@@ -267,14 +186,59 @@ function Home() {
           textAlign: 'center', 
           boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
           marginTop: '20px',
-          marginBottom: '60px'
         }}>
-          <h2 style={{ color: '#111', fontSize: '2.2rem', marginBottom: '20px' }}>আমাদের সম্পর্কে (About Us)</h2>
+          {/* Reduced font size for About Us title */}
+          <h2 style={{ color: '#111', fontSize: '1.6rem', marginBottom: '15px' }}>আমাদের সম্পর্কে (About Us)</h2>
           <p style={{ color: '#444', fontSize: '1.1rem', lineHeight: '1.8', maxWidth: '800px', margin: '0 auto' }}>
             Holy Child Academy is committed to fostering excellence in education. 
             We strive to build a foundation of lifelong learning, guiding students toward brighter futures 
             through dedicated teaching, modern facilities, and a supportive community environment across both our campuses.
           </p>
+        </div>
+
+      </div>
+
+      {/* NEW: Dedicated Home Footer */}
+      <div style={{ 
+        width: '100%', 
+        background: 'rgba(0, 0, 0, 0.75)', 
+        backdropFilter: 'blur(10px)',
+        padding: '20px 40px', 
+        marginTop: '60px', 
+        display: 'flex', 
+        flexDirection: 'row', 
+        flexWrap: 'wrap',
+        justifyContent: 'center', 
+        alignItems: 'center',
+        gap: '40px',
+        color: 'white',
+        boxSizing: 'border-box'
+      }}>
+        
+        <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', textAlign: 'center' }}>
+          {footerData.kurparPhone && (
+            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+              Contact (Kurpar): <span style={{ color: '#4da3ff', fontWeight: 'normal' }}>{footerData.kurparPhone}</span>
+            </span>
+          )}
+          {footerData.muktarparaPhone && (
+            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+              Contact (Muktarpara): <span style={{ color: '#4da3ff', fontWeight: 'normal' }}>{footerData.muktarparaPhone}</span>
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          {footerData.facebook && (
+            <a href={footerData.facebook} target="_blank" rel="noreferrer" style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <img src="/pictures/FB.png" alt="Facebook" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            </a>
+          )}
+          {footerData.email && (
+            <a href={`mailto:${footerData.email}`} style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <img src="/pictures/mail.png" alt="Email" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+            </a>
+          )}
         </div>
 
       </div>
