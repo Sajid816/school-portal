@@ -32,7 +32,21 @@ function Education() {
   }, []);
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ 
+      padding: '40px 20px', 
+      color: 'white', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      width: '100%', 
+      minHeight: '100vh', 
+      boxSizing: 'border-box', 
+      backgroundImage: 'url("/pictures/education.jpg")', 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', 
+      backgroundRepeat: 'no-repeat', 
+      backgroundAttachment: 'fixed' 
+    }}>
       <h1>Education & Academics</h1>
       <p style={{ marginBottom: '40px', color: '#ddd', textAlign: 'center', maxWidth: '600px' }}>
         Our curriculum structure per branch.

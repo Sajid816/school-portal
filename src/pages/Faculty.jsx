@@ -41,7 +41,20 @@ function Faculty() {
   const activeBranchTeachers = teachersList.filter(t => t.branch === publicBranch);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '20px', boxSizing: 'border-box' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      width: '100%', 
+      minHeight: '100vh', 
+      padding: '20px', 
+      boxSizing: 'border-box', 
+      backgroundImage: 'url("/pictures/education.jpg")', 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', 
+      backgroundRepeat: 'no-repeat', 
+      backgroundAttachment: 'fixed' 
+    }}>
       <h1>Class Teachers Directory</h1>
       <p style={{ color: '#ddd', marginBottom: '20px' }}>Overview of active faculty instructors</p>
       

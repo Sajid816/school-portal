@@ -132,7 +132,21 @@ function Administration() {
   const currentDisplayRoles = publicViewMode === 'principals' ? PRINCIPAL_ROLES : GOVERNING_ROLES;
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ 
+      padding: '40px 20px', 
+      color: 'white', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      width: '100%', 
+      minHeight: '100vh', 
+      boxSizing: 'border-box',
+      backgroundImage: 'url("/pictures/administration1.jpg")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed'
+    }}>
       <h1>School Administration</h1>
       <p style={{ marginBottom: '30px', color: '#ddd', textAlign: 'center' }}>Meet the leadership team steering our institution</p>
 

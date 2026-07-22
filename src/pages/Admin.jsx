@@ -231,7 +231,21 @@ function Admin() {
   const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/admin.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
+    <div style={{ 
+      padding: '40px 20px', 
+      color: 'white', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      width: '100%', 
+      minHeight: '100vh', 
+      boxSizing: 'border-box',
+      backgroundImage: 'url("/pictures/administration1.jpg")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed'
+    }}>
       <h1>Admin Control Workspace</h1>
       
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
