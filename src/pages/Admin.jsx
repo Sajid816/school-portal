@@ -23,7 +23,7 @@ function Admin() {
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
 
-  const [destination, setDestination] = useState('news');
+  const [destination, setDestination] = useState('notices');
   const [targetBranch, setTargetBranch] = useState('kurpar');
   const [targetClass, setTargetClass] = useState('Playgroup');
   const [targetSection, setTargetSection] = useState('');
@@ -41,6 +41,14 @@ function Admin() {
   const [footerEmail, setFooterEmail] = useState('');
   const [isUpdatingFooter, setIsUpdatingFooter] = useState(false);
 
+  // Administration Body Editor States
+  const [adminProfiles, setAdminProfiles] = useState({ branches: {}, governingBody: {}, accounts: {} });
+  const [adminSection, setAdminSection] = useState('governing'); // 'governing', 'academic', or 'accounts'
+  const [adminBranch, setAdminBranch] = useState('kurpar');
+  const [adminRole, setAdminRole] = useState('Chairman');
+  const [adminFormData, setAdminFormData] = useState({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+  const [isSavingAdminProfile, setIsSavingAdminProfile] = useState(false);
+
   const BRANCHES = [
     { id: 'kurpar', name: 'হলি চাইল্ড একাডেমি, কুরপাড়' },
     { id: 'moktarpara', name: 'হলি চাইল্ড একাডেমি, মোক্তারপাড়া' }
@@ -50,6 +58,10 @@ function Admin() {
   const AVAILABLE_SECTIONS = ["A", "B", "C", "D", "E"];
   const AVAILABLE_EXTRAS = ["Drawing", "Music", "Dance", "Spoken English", "Handwriting", "Physical Education", "Recitation"];
 
+  const GOVERNING_ROLES = ['Chairman', 'Managing Director', 'Director', 'Member 1', 'Member 2', 'Member 3'];
+  const PRINCIPAL_ROLES = ['Principal', 'Vice Principal', 'Headmaster', 'Assistant Headmaster'];
+  const ACCOUNTS_ROLES = ['Accountant', 'Assistant Accountant'];
+
   useEffect(() => { 
     fetchCurrentTicker();
     fetchGallery();
@@ -57,6 +69,7 @@ function Admin() {
     fetchNotices();
     fetchSectionsConfig();
     fetchFooterConfig();
+    fetchAdministrationData();
   }, []);
 
   useEffect(() => {
@@ -67,6 +80,109 @@ function Admin() {
       setTargetSection('');
     }
   }, [targetBranch, targetClass, sectionsMap]);
+
+  // Adjust default roles when switching admin section
+  useEffect(() => {
+    if (adminSection === 'governing') setAdminRole(GOVERNING_ROLES[0]);
+    else if (adminSection === 'academic') setAdminRole(PRINCIPAL_ROLES[0]);
+    else if (adminSection === 'accounts') setAdminRole(ACCOUNTS_ROLES[0]);
+  }, [adminSection]);
+
+  // Sync admin form data when modifying administration body
+  useEffect(() => {
+    if (adminSection === 'governing') {
+      if (adminProfiles.governingBody && adminProfiles.governingBody[adminRole]) {
+        setAdminFormData(adminProfiles.governingBody[adminRole]);
+      } else {
+        setAdminFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      }
+    } else if (adminSection === 'academic') {
+      if (adminProfiles.branches && adminProfiles.branches[adminBranch] && adminProfiles.branches[adminBranch][adminRole]) {
+        setAdminFormData(adminProfiles.branches[adminBranch][adminRole]);
+      } else {
+        setAdminFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      }
+    } else if (adminSection === 'accounts') {
+      if (adminProfiles.accounts && adminProfiles.accounts[adminBranch] && adminProfiles.accounts[adminBranch][adminRole]) {
+        setAdminFormData(adminProfiles.accounts[adminBranch][adminRole]);
+      } else {
+        setAdminFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      }
+    }
+  }, [adminSection, adminBranch, adminRole, adminProfiles]);
+
+  const fetchAdministrationData = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, "settings", "administrationData"));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setAdminProfiles({
+          branches: data.branches || {},
+          governingBody: data.governingBody || {},
+          accounts: data.accounts || {}
+        });
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSaveAdminProfile = async (e) => {
+    e.preventDefault();
+    setIsSavingAdminProfile(true);
+
+    let updatedProfiles = { ...adminProfiles };
+
+    if (adminSection === 'governing') {
+      updatedProfiles.governingBody = {
+        ...adminProfiles.governingBody,
+        [adminRole]: {
+          name: adminFormData.name.trim(),
+          email: adminFormData.email.trim(),
+          contact: adminFormData.contact.trim(),
+          imageUrl: adminFormData.imageUrl.trim(),
+          message: (adminFormData.message || '').trim()
+        }
+      };
+    } else if (adminSection === 'academic') {
+      updatedProfiles.branches = {
+        ...adminProfiles.branches,
+        [adminBranch]: {
+          ...(adminProfiles.branches[adminBranch] || {}),
+          [adminRole]: {
+            name: adminFormData.name.trim(),
+            email: adminFormData.email.trim(),
+            contact: adminFormData.contact.trim(),
+            imageUrl: adminFormData.imageUrl.trim(),
+            message: (adminFormData.message || '').trim()
+          }
+        }
+      };
+    } else if (adminSection === 'accounts') {
+      updatedProfiles.accounts = {
+        ...adminProfiles.accounts,
+        [adminBranch]: {
+          ...(adminProfiles.accounts[adminBranch] || {}),
+          [adminRole]: {
+            name: adminFormData.name.trim(),
+            email: adminFormData.email.trim(),
+            contact: adminFormData.contact.trim(),
+            imageUrl: adminFormData.imageUrl.trim(),
+            message: (adminFormData.message || '').trim()
+          }
+        }
+      };
+    }
+
+    try {
+      await setDoc(doc(db, "settings", "administrationData"), updatedProfiles);
+      setAdminProfiles(updatedProfiles);
+      alert("Administration profile updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update profile.");
+    } finally {
+      setIsSavingAdminProfile(false);
+    }
+  };
 
   const fetchFooterConfig = async () => {
     try {
@@ -221,9 +337,6 @@ function Admin() {
       if (destination === 'gallery') {
         await addDoc(collection(db, "gallery"), { url: imageUrl, caption: contentTitle, uploadedAt: new Date().toISOString() });
         fetchGallery();
-      } else if (destination === 'news') {
-        await addDoc(collection(db, "news"), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
-        fetchNews();
       } else if (destination === 'notices') {
         await addDoc(collection(db, "notices"), { url: imageUrl, title: contentTitle, uploadedAt: new Date().toISOString() });
         fetchNotices();
@@ -257,7 +370,6 @@ function Admin() {
     if (window.confirm("Remove this content permanently?")) {
       await deleteDoc(doc(db, collectionName, id));
       if (collectionName === 'gallery') fetchGallery();
-      if (collectionName === 'news') fetchNews();
       if (collectionName === 'notices') fetchNotices();
     }
   };
@@ -267,9 +379,24 @@ function Admin() {
   const activeForUploaderClass = (sectionsMap[targetBranch] && sectionsMap[targetBranch][targetClass]) || [];
 
   return (
-    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/admin.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
+    <div style={{ 
+      padding: '40px 20px', 
+      color: '#222', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      width: '100%', 
+      minHeight: '100vh', 
+      boxSizing: 'border-box',
+      backgroundImage: 'url("/pictures/administration1.jpg")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed'
+    }}>
       <h1>Admin Control Workspace</h1>
       
+      {/* 1. CREATE SYSTEM ADMIN */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>Create System Administrator</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Generate secure login credentials for website administrators.</p>
@@ -295,7 +422,67 @@ function Admin() {
         </form>
       </div>
 
-      {/* NEW: HOME PAGE FOOTER EDITOR */}
+      {/* 2. UPDATE ADMINISTRATION PROFILES */}
+      <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
+        <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>Manage Administration Body (Governing, Academic & Accounts)</h3>
+        
+        <div style={{ display: 'flex', gap: '10px', margin: '15px 0', flexWrap: 'wrap' }}>
+          <button onClick={() => setAdminSection('governing')} className="liquid-btn" style={{ background: adminSection === 'governing' ? '#0056b3' : '#ddd', color: adminSection === 'governing' ? '#fff' : '#333', padding: '8px 15px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Governing Body</button>
+          <button onClick={() => setAdminSection('academic')} className="liquid-btn" style={{ background: adminSection === 'academic' ? '#0056b3' : '#ddd', color: adminSection === 'academic' ? '#fff' : '#333', padding: '8px 15px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Academic Body</button>
+          <button onClick={() => setAdminSection('accounts')} className="liquid-btn" style={{ background: adminSection === 'accounts' ? '#0056b3' : '#ddd', color: adminSection === 'accounts' ? '#fff' : '#333', padding: '8px 15px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Accounts</button>
+        </div>
+
+        <form onSubmit={handleSaveAdminProfile} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            {adminSection !== 'governing' && (
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Target Branch</label>
+                <select className="glass-input" style={{ margin: 0, width: '100%' }} value={adminBranch} onChange={e => setAdminBranch(e.target.value)}>
+                  {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Designation / Role</label>
+              <select className="glass-input" style={{ margin: 0, width: '100%' }} value={adminRole} onChange={e => setAdminRole(e.target.value)}>
+                {(adminSection === 'governing' ? GOVERNING_ROLES : adminSection === 'academic' ? PRINCIPAL_ROLES : ACCOUNTS_ROLES).map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Full Name</label>
+            <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={adminFormData.name} onChange={e => setAdminFormData({ ...adminFormData, name: e.target.value })} required />
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Email Address (Optional)</label>
+              <input type="email" className="glass-input" style={{ margin: 0, width: '100%' }} value={adminFormData.email} onChange={e => setAdminFormData({ ...adminFormData, email: e.target.value })} />
+            </div>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Contact Number (Optional)</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={adminFormData.contact} onChange={e => setAdminFormData({ ...adminFormData, contact: e.target.value })} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Direct Image URL</label>
+            <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={adminFormData.imageUrl} onChange={e => setAdminFormData({ ...adminFormData, imageUrl: e.target.value })} required />
+          </div>
+
+          <div>
+            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Official Message / Bio (Optional - Principals show on Home)</label>
+            <textarea className="glass-input" style={{ margin: 0, width: '100%', minHeight: '80px', padding: '10px', resize: 'vertical' }} value={adminFormData.message} onChange={e => setAdminFormData({ ...adminFormData, message: e.target.value })} />
+          </div>
+
+          <button type="submit" className="login-btn" style={{ margin: 0, alignSelf: 'flex-start', width: 'auto' }} disabled={isSavingAdminProfile}>
+            {isSavingAdminProfile ? "Saving..." : "Save Administration Profile"}
+          </button>
+        </form>
+      </div>
+
+      {/* 3. HOME PAGE FOOTER EDITOR */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '8px', color: '#111' }}>Update Home Page Footer Contact</h3>
         
@@ -326,6 +513,7 @@ function Admin() {
         </form>
       </div>
 
+      {/* 4. MANAGE ACADEMICS & EXTRACURRICULARS */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Manage Academics & Extracurriculars</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '15px' }}>Configure branch-specific structures.</p>
@@ -371,6 +559,7 @@ function Admin() {
         )}
       </div>
 
+      {/* 5. UNIVERSAL CONTENT MANAGER */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Universal Website Content Manager</h3>
         <form onSubmit={handleContentUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -382,7 +571,6 @@ function Admin() {
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ fontWeight: 'bold' }}>Route Destination:</label>
             <select className="glass-input" style={{ margin: 0, width: '200px' }} value={destination} onChange={e => setDestination(e.target.value)}>
-              <option value="news">Home Page Canvas</option>
               <option value="notices">Notice Board (PDF)</option>
               <option value="gallery">Photo Gallery</option>
               <option value="teachers">Teachers Directory</option>
@@ -421,25 +609,26 @@ function Admin() {
           </button>
         </form>
 
-        {['gallery', 'news', 'notices'].includes(destination) && (
+        {['gallery', 'notices'].includes(destination) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
-            {(destination === 'gallery' ? galleryImages : destination === 'news' ? newsImages : notices).map(img => (
-              <div key={img.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
+            {(destination === 'gallery' ? galleryImages : notices).map(item => (
+              <div key={item.id} style={{ position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: '5px', background: '#fff' }}>
                 {destination !== 'notices' ? (
-                  <img src={img.url} alt={img.title || img.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+                  <img src={item.url} alt={item.title || item.caption} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100px', background: '#0056b3', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontWeight: 'bold', textAlign: 'center', padding: '10px', boxSizing: 'border-box' }}>{img.title || 'PDF Notice'}</div>
+                  <div style={{ width: '100%', height: '100px', background: '#0056b3', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontWeight: 'bold', textAlign: 'center', padding: '10px', boxSizing: 'border-box' }}>{item.title || 'PDF Notice'}</div>
                 )}
                 <p style={{ fontSize: '0.8rem', margin: '5px 0 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                  {img.title || img.caption}
+                  {item.title || item.caption}
                 </p>
-                <button onClick={() => handleDeleteImage(img.id, destination)} style={{ position: 'absolute', top: '5px', right: '5px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>X</button>
+                <button onClick={() => handleDeleteImage(item.id, destination)} style={{ position: 'absolute', top: '5px', right: '5px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>X</button>
               </div>
             ))}
           </div>
         )}
       </div>
 
+      {/* 6. NEWS TICKER MANAGER */}
       <div className="glass-notice-box" style={{ color: '#333', marginBottom: '20px', width: '100%', maxWidth: '900px', padding: '30px' }}>
         <h3>Update News Ticker Message</h3>
         <form onSubmit={handleTickerUpdate}>
@@ -447,6 +636,7 @@ function Admin() {
           <button type="submit" className="login-btn" disabled={currentTicker === '' || isUpdatingTicker} style={{ marginTop: '5px' }}>Publish Live Message</button>
         </form>
       </div>
+
     </div>
   );
 }
