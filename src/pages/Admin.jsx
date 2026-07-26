@@ -5,7 +5,6 @@ import { doc, collection, getDocs, deleteDoc, setDoc, getDoc, addDoc } from 'fir
 
 function Admin() {
   const [galleryImages, setGalleryImages] = useState([]);
-  const [newsImages, setNewsImages] = useState([]);
   const [notices, setNotices] = useState([]);
   const [currentTicker, setCurrentTicker] = useState('');
   const [isUpdatingTicker, setIsUpdatingTicker] = useState(false);
@@ -58,14 +57,14 @@ function Admin() {
   const AVAILABLE_SECTIONS = ["A", "B", "C", "D", "E"];
   const AVAILABLE_EXTRAS = ["Drawing", "Music", "Dance", "Spoken English", "Handwriting", "Physical Education", "Recitation"];
 
-  const GOVERNING_ROLES = ['Chairman', 'Managing Director', 'Director', 'Member 1', 'Member 2', 'Member 3'];
-  const PRINCIPAL_ROLES = ['Principal', 'Vice Principal', 'Headmaster', 'Assistant Headmaster'];
+  // Expanded Roles to support multiple positions
+  const GOVERNING_ROLES = ['Chairman', 'Managing Director 1', 'Managing Director 2', 'Director 1', 'Director 2', 'Director 3', 'Member 1', 'Member 2'];
+  const PRINCIPAL_ROLES = ['Principal', 'Vice Principal 1', 'Vice Principal 2', 'Headmaster', 'Assistant Headmaster'];
   const ACCOUNTS_ROLES = ['Accountant', 'Assistant Accountant'];
 
   useEffect(() => { 
     fetchCurrentTicker();
     fetchGallery();
-    fetchNews();
     fetchNotices();
     fetchSectionsConfig();
     fetchFooterConfig();
@@ -208,13 +207,6 @@ function Admin() {
     try {
       const querySnapshot = await getDocs(collection(db, "gallery"));
       setGalleryImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (err) { console.error(err); }
-  };
-
-  const fetchNews = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "news"));
-      setNewsImages(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) { console.error(err); }
   };
 
@@ -388,7 +380,7 @@ function Admin() {
       width: '100%', 
       minHeight: '100vh', 
       boxSizing: 'border-box',
-      backgroundImage: 'url("/pictures/administration1.jpg")',
+      backgroundImage: 'url("/pictures/admin.jpg")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
