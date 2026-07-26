@@ -13,14 +13,14 @@ function Education() {
   
   const orderedClasses = ["Playgroup", "Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
 
-  // Hardcoded unified co-curricular list
+  // Co-curricular activities paired with their respective sticker PNG paths
   const CO_CURRICULAR = [
-    "Swimming",
-    "Drawing",
-    "Class Party",
-    "Annual Sports",
-    "Presentation",
-    "Cultural Activities"
+    { name: "Swimming", sticker: "/pictures/stickers/swimming.png" },
+    { name: "Drawing", sticker: "/pictures/stickers/drawing.png" },
+    { name: "Class Party", sticker: "/pictures/stickers/party.png" },
+    { name: "Annual Sports", sticker: "/pictures/stickers/sports.png" },
+    { name: "Presentation", sticker: "/pictures/stickers/presentation.png" },
+    { name: "Cultural Activities", sticker: "/pictures/stickers/cultural.png" }
   ];
 
   useEffect(() => {
@@ -94,35 +94,67 @@ function Education() {
             );
           })}
 
-          {/* CO-CURRICULAR ACTIVITIES (Global Unified Section) */}
-          <div className="glass-notice-box" style={{ padding: '30px', color: '#333' }}>
-            <h2 style={{ color: '#5d4068', marginBottom: '20px', borderBottom: '2px solid rgba(93, 64, 104, 0.3)', paddingBottom: '10px' }}>
+          {/* CO-CURRICULAR ACTIVITIES (Glassy Cascading Layout with Stickers) */}
+          <div className="glass-notice-box" style={{ padding: '35px', color: '#333' }}>
+            <h2 style={{ color: '#0056b3', marginBottom: '30px', borderBottom: '2px solid rgba(0, 86, 179, 0.2)', paddingBottom: '10px' }}>
               Co-curricular Activities
             </h2>
             
-            <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: '40px', marginLeft: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: '45px', marginLeft: '15px' }}>
               
-              {/* Main Vertical Flowchart Stem */}
-              <div style={{ position: 'absolute', left: 0, top: 0, bottom: '25px', width: '2px', background: '#5d4068' }}></div>
+              {/* Main Vertical Cascading Line */}
+              <div style={{ position: 'absolute', left: 0, top: '20px', bottom: '30px', width: '3px', background: '#0056b3', borderRadius: '2px' }}></div>
 
-              {CO_CURRICULAR.map((extra, index) => (
-                <div key={extra} style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: index === 0 ? '10px' : '25px' }}>
+              {CO_CURRICULAR.map((item, index) => (
+                <div key={item.name} style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: index === 0 ? '0px' : '20px' }}>
                   
-                  {/* Horizontal Flowchart Branch Line */}
-                  <div style={{ position: 'absolute', left: '-40px', width: '40px', height: '2px', background: '#5d4068' }}></div>
+                  {/* Horizontal Branch Connector Line */}
+                  <div style={{ position: 'absolute', left: '-45px', width: '45px', height: '3px', background: '#0056b3' }}></div>
 
-                  {/* Individual Activity Node Block */}
-                  <div style={{ 
-                    background: 'rgba(240, 235, 245, 0.95)', 
-                    border: '1px solid rgba(93, 64, 104, 0.2)',
-                    padding: '10px 25px', 
-                    borderRadius: '4px', 
-                    color: '#5d4068', 
-                    fontSize: '1.2rem',
-                    fontWeight: '500',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                  }}>
-                    {extra}
+                  {/* Activity Glass Card Container */}
+                  <div 
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '15px',
+                      background: 'rgba(255, 255, 255, 0.75)', 
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.8)',
+                      padding: '10px 22px', 
+                      borderRadius: '12px', 
+                      color: '#111', 
+                      fontSize: '1.2rem',
+                      fontWeight: 'bold',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                      transition: 'transform 0.2s ease, background 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateX(5px)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateX(0px)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.75)';
+                    }}
+                  >
+                    {/* Activity Sticker Icon */}
+                    <img 
+                      src={item.sticker} 
+                      alt={item.name} 
+                      style={{ 
+                        width: '32px', 
+                        height: '32px', 
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' 
+                      }} 
+                      onError={(e) => {
+                        // Fallback handling if sticker file is missing
+                        e.target.style.display = 'none';
+                      }}
+                    />
+
+                    <span>{item.name}</span>
                   </div>
 
                 </div>
