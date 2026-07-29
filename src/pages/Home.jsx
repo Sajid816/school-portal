@@ -12,7 +12,10 @@ function Home() {
     moktarparaVPs: []
   });
 
-  const [showSplash, setShowSplash] = useState(true);
+  // Check session storage to see if the splash has already been shown this session
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('splashShown');
+  });
   
   // New state for the dedicated footer
   const [footerData, setFooterData] = useState({
@@ -22,13 +25,16 @@ function Home() {
     email: ''
   });
 
-  // Splash Screen Timer
+  // Splash Screen Timer (Shortened to 2.5s and only runs once per session)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 3500); 
-    return () => clearTimeout(timer);
-  }, []);
+    if (showSplash) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+        sessionStorage.setItem('splashShown', 'true');
+      }, 2500); 
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
 
   // Fetch Ticker
   useEffect(() => {
@@ -171,6 +177,12 @@ function Home() {
               80% { opacity: 1; filter: blur(0px); transform: scale(1); }
               100% { opacity: 0; filter: blur(10px); transform: scale(1.1); }
             }
+            @keyframes fadeInOut {
+              0% { opacity: 0; }
+              15% { opacity: 1; }
+              85% { opacity: 1; }
+              100% { opacity: 0; }
+            }
           `}
         </style>
 
@@ -178,7 +190,7 @@ function Home() {
           padding: '50px 80px', 
           textAlign: 'center', 
           background: 'rgba(255, 255, 255, 0.85)',
-          animation: 'fadeInOut 3.5s ease-in-out',
+          animation: 'fadeInOut 2.5s ease-in-out forwards',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -190,7 +202,7 @@ function Home() {
             style={{ 
               width: '140px', 
               height: 'auto',
-              animation: 'logoReveal 3.5s ease-in-out'
+              animation: 'logoReveal 2.5s ease-in-out forwards'
             }} 
           />
           <h1 style={{ color: '#111', fontSize: '3.5rem', margin: '0' }}>Welcome to Holy Child Academy</h1>
@@ -281,47 +293,74 @@ function Home() {
 
       </div>
 
-      {/* Dedicated Home Footer */}
+      {/* Beautiful Designed Home Footer */}
       <div style={{ 
         width: '100%', 
-        background: 'rgba(0, 0, 0, 0.75)', 
-        backdropFilter: 'blur(10px)',
-        padding: '20px 40px', 
-        marginTop: '60px', 
+        background: 'linear-gradient(135deg, #002d5e 0%, #0056b3 100%)', 
+        padding: '50px 20px 30px 20px', 
+        marginTop: '80px', 
         display: 'flex', 
-        flexDirection: 'row', 
-        flexWrap: 'wrap',
-        justifyContent: 'center', 
+        flexDirection: 'column', 
         alignItems: 'center',
         gap: '40px',
         color: 'white',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: '0 -10px 30px rgba(0,0,0,0.15)'
       }}>
         
-        <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', textAlign: 'center' }}>
-          {footerData.kurparPhone && (
-            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
-              Contact (Kurpar): <span style={{ color: '#4da3ff', fontWeight: 'normal' }}>{footerData.kurparPhone}</span>
-            </span>
-          )}
-          {footerData.muktarparaPhone && (
-            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
-              Contact (Muktarpara): <span style={{ color: '#4da3ff', fontWeight: 'normal' }}>{footerData.muktarparaPhone}</span>
-            </span>
-          )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '50px', width: '100%', maxWidth: '1000px' }}>
+          
+          {/* Phone Information */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#80bfff', letterSpacing: '1px', textTransform: 'uppercase' }}>Contact Us</h4>
+            {footerData.kurparPhone && (
+              <div style={{ fontSize: '1.1rem' }}>
+                <span style={{ fontWeight: 'bold' }}>Kurpar:</span> {footerData.kurparPhone}
+              </div>
+            )}
+            {footerData.muktarparaPhone && (
+              <div style={{ fontSize: '1.1rem' }}>
+                <span style={{ fontWeight: 'bold' }}>Muktarpara:</span> {footerData.muktarparaPhone}
+              </div>
+            )}
+          </div>
+
+          {/* Social & Email Buttons */}
+          <div style={{ display: 'flex', gap: '25px', alignItems: 'center' }}>
+            {footerData.facebook && (
+              <a href={footerData.facebook} target="_blank" rel="noreferrer" 
+                 style={{ 
+                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                   width: '55px', height: '55px', background: 'rgba(255, 255, 255, 0.1)', 
+                   borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)',
+                   transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                 }} 
+                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'; }} 
+                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+              >
+                <img src="/pictures/FB.png" alt="Facebook" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+              </a>
+            )}
+            {footerData.email && (
+              <a href={`mailto:${footerData.email}`}
+                 style={{ 
+                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                   width: '55px', height: '55px', background: 'rgba(255, 255, 255, 0.1)', 
+                   borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)',
+                   transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                 }} 
+                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'; }} 
+                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+              >
+                <img src="/pictures/mail.png" alt="Email" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
+              </a>
+            )}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          {footerData.facebook && (
-            <a href={footerData.facebook} target="_blank" rel="noreferrer" style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <img src="/pictures/FB.png" alt="Facebook" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-            </a>
-          )}
-          {footerData.email && (
-            <a href={`mailto:${footerData.email}`} style={{ transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <img src="/pictures/mail.png" alt="Email" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
-            </a>
-          )}
+        {/* Copyright Line */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '20px', width: '100%', maxWidth: '1000px', textAlign: 'center', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
+          © {new Date().getFullYear()} Holy Child Academy. All rights reserved.
         </div>
 
       </div>
