@@ -9,8 +9,13 @@ function Contact() {
   
   // Master state keeping track of both school branches
   const [branches, setBranches] = useState({
-    kurpar: { mobile: '', phone: '', email: '', facebook: '', gmapUrl: '' },
-    moktarpara: { mobile: '', phone: '', email: '', facebook: '', gmapUrl: '' }
+    kurpar: { mobile: '', phone: '', whatsapp: '', email: '', facebook: '', gmapUrl: '' },
+    moktarpara: { mobile: '', phone: '', whatsapp: '', email: '', facebook: '', gmapUrl: '' }
+  });
+
+  // Global state for shared links (like YouTube)
+  const [globalData, setGlobalData] = useState({
+    youtubeUrl: 'https://youtube.com/@holychildacademy4192?si=N0pI8-yVKogULJpy'
   });
 
   // Admin Workspace State tracking the currently selected branch form fields
@@ -18,6 +23,7 @@ function Contact() {
   const [formData, setFormData] = useState({
     mobile: '',
     phone: '',
+    whatsapp: '',
     email: '',
     facebook: '',
     gmapUrl: ''
@@ -40,9 +46,16 @@ function Contact() {
   // Sync admin input field form data when switching target branch configuration tracks
   useEffect(() => {
     if (branches[selectedBranch]) {
-      setFormData(branches[selectedBranch]);
+      setFormData({
+        mobile: branches[selectedBranch].mobile || '',
+        phone: branches[selectedBranch].phone || '',
+        whatsapp: branches[selectedBranch].whatsapp || '',
+        email: branches[selectedBranch].email || '',
+        facebook: branches[selectedBranch].facebook || '',
+        gmapUrl: branches[selectedBranch].gmapUrl || ''
+      });
     } else {
-      setFormData({ mobile: '', phone: '', email: '', facebook: '', gmapUrl: '' });
+      setFormData({ mobile: '', phone: '', whatsapp: '', email: '', facebook: '', gmapUrl: '' });
     }
   }, [selectedBranch, branches]);
 
@@ -50,8 +63,10 @@ function Contact() {
     setLoading(true);
     try {
       const docSnap = await getDoc(doc(db, "settings", "contactData"));
-      if (docSnap.exists() && docSnap.data().branches) {
-        setBranches(docSnap.data().branches);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.branches) setBranches(data.branches);
+        if (data.global) setGlobalData(data.global);
       }
     } catch (err) {
       console.error("Error loading contact data:", err);
@@ -69,6 +84,7 @@ function Contact() {
       [selectedBranch]: {
         mobile: formData.mobile.trim(),
         phone: formData.phone.trim(),
+        whatsapp: formData.whatsapp.trim(),
         email: formData.email.trim(),
         facebook: formData.facebook.trim(),
         gmapUrl: formData.gmapUrl.trim()
@@ -76,9 +92,13 @@ function Contact() {
     };
 
     try {
-      await setDoc(doc(db, "settings", "contactData"), { branches: updatedBranches });
+      // Save both branch-specific data and global data together
+      await setDoc(doc(db, "settings", "contactData"), { 
+        branches: updatedBranches,
+        global: { youtubeUrl: globalData.youtubeUrl.trim() }
+      });
       setBranches(updatedBranches);
-      alert(`Contact info for branch updated successfully!`);
+      alert(`Contact info updated successfully!`);
     } catch (error) {
       alert("Failed to update contact data.");
     } finally {
@@ -91,8 +111,7 @@ function Contact() {
   }
 
   return (
-    // ✅ FIXED
-<div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/contact.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
+    <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/contact.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
       <h1>Contact Us</h1>
       <p style={{ marginBottom: '30px', color: '#ddd' }}>Get in touch with our institutional campus branches</p>
 
@@ -115,13 +134,17 @@ function Contact() {
             </div>
 
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: '150px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Mobile Number</label>
                 <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.mobile} onChange={e => setFormData({ ...formData, mobile: e.target.value })} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: '150px' }}>
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Telephone Phone</label>
                 <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+              </div>
+              <div style={{ flex: 1, minWidth: '150px' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>WhatsApp Number</label>
+                <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} placeholder="e.g. 88017..." value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} />
               </div>
             </div>
 
@@ -141,10 +164,46 @@ function Contact() {
               <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} placeholder="https://www.google.com/maps/embed?pb=..." value={formData.gmapUrl} onChange={e => setFormData({ ...formData, gmapUrl: e.target.value })} />
             </div>
 
+            {/* GLOBAL YOUTUBE LINK AREA */}
+            <div style={{ marginTop: '10px', paddingTop: '15px', borderTop: '2px solid rgba(0,0,0,0.1)' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', color: '#d9534f' }}>Global YouTube Channel Link (Applies to all branches)</label>
+              <input type="text" className="glass-input" style={{ margin: 0, width: '100%' }} value={globalData.youtubeUrl} onChange={e => setGlobalData({ youtubeUrl: e.target.value })} />
+            </div>
+
             <button type="submit" className="login-btn" style={{ margin: 0, width: 'auto', alignSelf: 'flex-end' }} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Branch Info"}
+              {isSaving ? "Saving..." : "Save Configuration"}
             </button>
           </form>
+        </div>
+      )}
+
+      {/* GLOBAL YOUTUBE DISPLAY */}
+      {globalData.youtubeUrl && (
+        <div style={{ width: '100%', maxWidth: '800px', display: 'flex', justifyContent: 'center', marginBottom: '30px' }}>
+          <a 
+            href={globalData.youtubeUrl} 
+            target="_blank" 
+            rel="noreferrer" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              background: '#FF0000', 
+              color: 'white', 
+              padding: '12px 30px', 
+              borderRadius: '30px', 
+              textDecoration: 'none', 
+              fontSize: '1.1rem', 
+              fontWeight: 'bold', 
+              boxShadow: '0 4px 15px rgba(255,0,0,0.3)',
+              transition: 'transform 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <img src="/pictures/youtube.png" alt="" style={{ width: '24px', height: '24px' }} onError={(e) => e.target.style.display='none'} />
+            Visit our Official YouTube Channel
+          </a>
         </div>
       )}
 
@@ -168,8 +227,34 @@ function Contact() {
                   {info.email && <div><b>📧 Email:</b> <a href={`mailto:${info.email}`} style={{ color: '#0056b3', textDecoration: 'none' }}>{info.email}</a></div>}
                   {info.facebook && <div><b>🌐 Facebook:</b> <a href={info.facebook} target="_blank" rel="noreferrer" style={{ color: '#0056b3', fontWeight: 'bold' }}>Visit Official Page</a></div>}
                   
+                  {/* Whatsapp Button */}
+                  {info.whatsapp && (
+                    <a 
+                      href={`https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        background: '#25D366', 
+                        color: 'white', 
+                        padding: '8px 16px', 
+                        borderRadius: '20px', 
+                        textDecoration: 'none', 
+                        fontWeight: 'bold', 
+                        width: 'fit-content',
+                        marginTop: '10px',
+                        boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+                      }}
+                    >
+                      <img src="/pictures/whatsapp.png" alt="" style={{ width: '20px', height: '20px' }} onError={(e) => e.target.style.display='none'} />
+                      Message on WhatsApp
+                    </a>
+                  )}
+                  
                   {/* Clean fallback notice message if a brand new branch has zero fields filled out yet */}
-                  {!info.mobile && !info.phone && !info.email && !info.facebook && (
+                  {!info.mobile && !info.phone && !info.email && !info.facebook && !info.whatsapp && (
                     <p style={{ fontStyle: 'italic', color: '#777', margin: 0 }}>No contact metrics published for this branch yet.</p>
                   )}
                 </div>
