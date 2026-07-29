@@ -44,7 +44,7 @@ function Admin() {
   const [adminProfiles, setAdminProfiles] = useState({ branches: {}, governingBody: {}, accounts: {} });
   const [adminSection, setAdminSection] = useState('governing'); // 'governing', 'academic', or 'accounts'
   const [adminBranch, setAdminBranch] = useState('kurpar');
-  const [adminRole, setAdminRole] = useState('Chairman');
+  const [adminRole, setAdminRole] = useState('Managing Director 1');
   const [adminFormData, setAdminFormData] = useState({ name: '', email: '', contact: '', imageUrl: '', message: '' });
   const [isSavingAdminProfile, setIsSavingAdminProfile] = useState(false);
 
@@ -58,7 +58,7 @@ function Admin() {
   const AVAILABLE_EXTRAS = ["Drawing", "Music", "Dance", "Spoken English", "Handwriting", "Physical Education", "Recitation"];
 
   // Expanded Roles to support multiple positions
-  const GOVERNING_ROLES = ['Chairman', 'Managing Director 1', 'Managing Director 2', 'Director 1', 'Director 2', 'Director 3', 'Member 1', 'Member 2'];
+  const GOVERNING_ROLES = [/* 'Chairman', */ 'Managing Director 1', 'Managing Director 2', 'Managing Director 3', 'Director 1', 'Director 2', 'Director 3', 'Member 1', 'Member 2'];
   const PRINCIPAL_ROLES = ['Principal', 'Vice Principal 1', 'Vice Principal 2', 'Headmaster', 'Assistant Headmaster'];
   const ACCOUNTS_ROLES = ['Accountant', 'Assistant Accountant'];
 
@@ -178,6 +178,42 @@ function Admin() {
     } catch (error) {
       console.error(error);
       alert("Failed to update profile.");
+    } finally {
+      setIsSavingAdminProfile(false);
+    }
+  };
+
+  const handleDeleteAdminProfile = async () => {
+    if (!window.confirm(`Are you sure you want to delete the profile for ${adminRole}?`)) return;
+    setIsSavingAdminProfile(true);
+
+    let updatedProfiles = { ...adminProfiles };
+
+    if (adminSection === 'governing') {
+      updatedProfiles.governingBody = { ...adminProfiles.governingBody };
+      delete updatedProfiles.governingBody[adminRole];
+    } else if (adminSection === 'academic') {
+      updatedProfiles.branches = { ...adminProfiles.branches };
+      if (updatedProfiles.branches[adminBranch]) {
+        updatedProfiles.branches[adminBranch] = { ...updatedProfiles.branches[adminBranch] };
+        delete updatedProfiles.branches[adminBranch][adminRole];
+      }
+    } else if (adminSection === 'accounts') {
+      updatedProfiles.accounts = { ...adminProfiles.accounts };
+      if (updatedProfiles.accounts[adminBranch]) {
+        updatedProfiles.accounts[adminBranch] = { ...updatedProfiles.accounts[adminBranch] };
+        delete updatedProfiles.accounts[adminBranch][adminRole];
+      }
+    }
+
+    try {
+      await setDoc(doc(db, "settings", "administrationData"), updatedProfiles);
+      setAdminProfiles(updatedProfiles);
+      setAdminFormData({ name: '', email: '', contact: '', imageUrl: '', message: '' });
+      alert("Administration profile deleted successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete profile.");
     } finally {
       setIsSavingAdminProfile(false);
     }
@@ -468,9 +504,14 @@ function Admin() {
             <textarea className="glass-input" style={{ margin: 0, width: '100%', minHeight: '80px', padding: '10px', resize: 'vertical' }} value={adminFormData.message} onChange={e => setAdminFormData({ ...adminFormData, message: e.target.value })} />
           </div>
 
-          <button type="submit" className="login-btn" style={{ margin: 0, alignSelf: 'flex-start', width: 'auto' }} disabled={isSavingAdminProfile}>
-            {isSavingAdminProfile ? "Saving..." : "Save Administration Profile"}
-          </button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button type="submit" className="login-btn" style={{ margin: 0, alignSelf: 'flex-start', width: 'auto' }} disabled={isSavingAdminProfile}>
+              {isSavingAdminProfile ? "Saving..." : "Save Administration Profile"}
+            </button>
+            <button type="button" onClick={handleDeleteAdminProfile} className="liquid-btn" style={{ margin: 0, alignSelf: 'flex-start', width: 'auto', background: '#d9534f', color: '#fff', border: 'none' }} disabled={isSavingAdminProfile}>
+              Delete Profile
+            </button>
+          </div>
         </form>
       </div>
 

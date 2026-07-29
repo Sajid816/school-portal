@@ -156,9 +156,10 @@ function Administration() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', flexWrap: 'wrap', width: '100%' }}>
-          {renderProfile('Chairman', governingData['Chairman'], 'medium')}
+          {/* {renderProfile('Chairman', governingData['Chairman'], 'medium')} */}
           {renderProfile('Managing Director 1', governingData['Managing Director 1'], 'medium')}
           {renderProfile('Managing Director 2', governingData['Managing Director 2'], 'medium')}
+          {renderProfile('Managing Director 3', governingData['Managing Director 3'], 'medium')}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', width: '100%', marginTop: '50px' }}>

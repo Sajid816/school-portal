@@ -72,7 +72,19 @@ function Navbar() {
   };
 
   return (
-    <nav className="top-ribbon" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <nav className="top-ribbon" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px' }}>
+      
+      {/* NEW: Left-aligned School Logo */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img 
+            src="/pictures/school logo.png" 
+            alt="Holy Child Academy Logo" 
+            style={{ height: '50px', width: 'auto', objectFit: 'contain' }} 
+          />
+        </Link>
+      </div>
+
       <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', flex: 1, justifyContent: 'center' }}>
         <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Home</Link>
         <Link to="/administration" className={location.pathname === '/administration' ? 'active' : ''}>Administration</Link>

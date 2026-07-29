@@ -86,12 +86,37 @@ function Home() {
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed'
       }}>
+        {/* Inline style for the custom blur/fade animation */}
+        <style>
+          {`
+            @keyframes logoReveal {
+              0% { opacity: 0; filter: blur(10px); transform: scale(0.9); }
+              20% { opacity: 1; filter: blur(0px); transform: scale(1); }
+              80% { opacity: 1; filter: blur(0px); transform: scale(1); }
+              100% { opacity: 0; filter: blur(10px); transform: scale(1.1); }
+            }
+          `}
+        </style>
+
         <div className="glass-notice-box" style={{ 
           padding: '50px 80px', 
           textAlign: 'center', 
           background: 'rgba(255, 255, 255, 0.85)',
-          animation: 'fadeInOut 3.5s ease-in-out'
+          animation: 'fadeInOut 3.5s ease-in-out',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
         }}>
+          <img 
+            src="/pictures/school logo.png" 
+            alt="Holy Child Academy Logo" 
+            style={{ 
+              width: '140px', 
+              height: 'auto',
+              animation: 'logoReveal 3.5s ease-in-out'
+            }} 
+          />
           <h1 style={{ color: '#111', fontSize: '3.5rem', margin: '0' }}>Welcome to Holy Child Academy</h1>
         </div>
       </div>
@@ -187,7 +212,6 @@ function Home() {
           boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
           marginTop: '20px',
         }}>
-          {/* Reduced font size for About Us title */}
           <h2 style={{ color: '#111', fontSize: '1.6rem', marginBottom: '15px' }}>আমাদের সম্পর্কে (About Us)</h2>
           <p style={{ color: '#444', fontSize: '1.1rem', lineHeight: '1.8', maxWidth: '800px', margin: '0 auto' }}>
             Holy Child Academy is committed to fostering excellence in education. 
