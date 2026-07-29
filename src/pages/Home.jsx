@@ -4,7 +4,14 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 function Home() {
   const [tickerMessage, setTickerMessage] = useState('Loading announcements...');
-  const [principals, setPrincipals] = useState([]);
+  
+  // Leadership State structured for Home Page Hierarchy
+  const [leadership, setLeadership] = useState({
+    principal: null,
+    kurparVPs: [],
+    moktarparaVPs: []
+  });
+
   const [showSplash, setShowSplash] = useState(true);
   
   // New state for the dedicated footer
@@ -35,26 +42,41 @@ function Home() {
 
   // Fetch Principals dynamically from Administration Data
   useEffect(() => {
-    const fetchPrincipals = async () => {
+    const fetchLeadership = async () => {
       try {
         const docSnap = await getDoc(doc(db, "settings", "administrationData"));
         if (docSnap.exists()) {
           const data = docSnap.data().branches || {};
-          let extractedPrincipals = [];
-          
-          Object.keys(data).forEach(branchKey => {
-            if (data[branchKey].Principal && data[branchKey].Principal.name) {
-              extractedPrincipals.push({
-                branch: branchKey === 'kurpar' ? 'কুরপাড়' : 'মোক্তারপাড়া',
-                ...data[branchKey].Principal
-              });
-            }
+          const kurpar = data.kurpar || {};
+          const moktarpara = data.moktarpara || {};
+
+          // 1. Grab single principal (checking kurpar first)
+          let singlePrincipal = null;
+          if (kurpar.Principal && kurpar.Principal.name) {
+            singlePrincipal = kurpar.Principal;
+          } else if (moktarpara.Principal && moktarpara.Principal.name) {
+            singlePrincipal = moktarpara.Principal;
+          }
+
+          // 2. Extract Kurpar VPs
+          const kVPs = [];
+          if (kurpar['Vice Principal 1']?.name) kVPs.push(kurpar['Vice Principal 1']);
+          if (kurpar['Vice Principal 2']?.name) kVPs.push(kurpar['Vice Principal 2']);
+
+          // 3. Extract Moktarpara VPs
+          const mVPs = [];
+          if (moktarpara['Vice Principal 1']?.name) mVPs.push(moktarpara['Vice Principal 1']);
+          if (moktarpara['Vice Principal 2']?.name) mVPs.push(moktarpara['Vice Principal 2']);
+
+          setLeadership({
+            principal: singlePrincipal,
+            kurparVPs: kVPs,
+            moktarparaVPs: mVPs
           });
-          setPrincipals(extractedPrincipals);
         }
       } catch (err) { console.error(err); }
     };
-    fetchPrincipals();
+    fetchLeadership();
   }, []);
 
   // Fetch Home Page Footer Data
@@ -69,6 +91,61 @@ function Home() {
     };
     fetchFooter();
   }, []);
+
+  // Reusable component for rendering a profile card to keep code clean
+  const ProfileCard = ({ person, roleLabel, isLarge }) => (
+    <div style={{ 
+      background: 'rgba(255, 255, 255, 0.75)', 
+      backdropFilter: 'blur(12px)',
+      borderRadius: '16px',
+      padding: isLarge ? '40px' : '30px', 
+      color: '#222', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      textAlign: 'center',
+      maxWidth: isLarge ? '600px' : '450px',
+      width: '100%',
+      flex: '1',
+      minWidth: '280px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+    }}>
+      <div style={{ 
+        width: isLarge ? '180px' : '130px', 
+        height: isLarge ? '180px' : '130px', 
+        borderRadius: '50%', 
+        overflow: 'hidden', 
+        border: `5px solid #0056b3`, 
+        marginBottom: '20px',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+        background: '#e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {person.imageUrl ? (
+          <img src={person.imageUrl} alt={person.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ color: '#888', fontSize: '0.9rem' }}>No Photo</span>
+        )}
+      </div>
+      
+      <h3 style={{ margin: '0 0 5px 0', fontSize: isLarge ? '2rem' : '1.5rem', color: '#111' }}>{person.name}</h3>
+      <span style={{ color: '#0056b3', fontWeight: 'bold', fontSize: '1rem', marginBottom: '15px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+        {roleLabel}
+      </span>
+      
+      {person.message && (
+        <div style={{ position: 'relative', marginTop: '10px' }}>
+          <span style={{ position: 'absolute', top: '-15px', left: '-15px', fontSize: '2.5rem', color: 'rgba(0, 86, 179, 0.2)' }}>"</span>
+          <p style={{ fontStyle: 'italic', color: '#444', lineHeight: '1.6', fontSize: isLarge ? '1.15rem' : '1rem', padding: '0 15px', margin: 0 }}>
+            {person.message}
+          </p>
+          <span style={{ position: 'absolute', bottom: '-25px', right: '-10px', fontSize: '2.5rem', color: 'rgba(0, 86, 179, 0.2)' }}>"</span>
+        </div>
+      )}
+    </div>
+  );
 
   // 1. SPLASH SCREEN RENDER
   if (showSplash) {
@@ -86,7 +163,6 @@ function Home() {
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed'
       }}>
-        {/* Inline style for the custom blur/fade animation */}
         <style>
           {`
             @keyframes logoReveal {
@@ -148,58 +224,41 @@ function Home() {
 
       <div style={{ width: '100%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', gap: '50px', alignItems: 'center', padding: '0 20px', flex: 1 }}>
         
-        {/* Principals Section */}
-        {principals.length > 0 && (
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '40px' }}>
-            {principals.map((principal, idx) => (
-              <div key={idx} style={{ 
-                background: 'rgba(255, 255, 255, 0.75)', 
-                backdropFilter: 'blur(12px)',
-                borderRadius: '16px',
-                padding: '40px', 
-                color: '#222', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center',
-                maxWidth: '600px',
-                width: '100%',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ 
-                  width: '180px', 
-                  height: '180px', 
-                  borderRadius: '50%', 
-                  overflow: 'hidden', 
-                  border: '5px solid #0056b3', 
-                  marginBottom: '20px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                }}>
-                  {principal.imageUrl ? (
-                    <img src={principal.imageUrl} alt={principal.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ background: '#ccc', width: '100%', height: '100%' }}></div>
-                  )}
-                </div>
-                
-                <h3 style={{ margin: '0 0 5px 0', fontSize: '2rem', color: '#111' }}>{principal.name}</h3>
-                <span style={{ color: '#0056b3', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '20px', letterSpacing: '1px' }}>
-                  Principal ({principal.branch} শাখা)
-                </span>
-                
-                {principal.message && (
-                  <div style={{ position: 'relative', marginTop: '10px' }}>
-                    <span style={{ position: 'absolute', top: '-15px', left: '-20px', fontSize: '3rem', color: 'rgba(0, 86, 179, 0.2)' }}>"</span>
-                    <p style={{ fontStyle: 'italic', color: '#444', lineHeight: '1.8', fontSize: '1.15rem', padding: '0 20px', margin: 0 }}>
-                      {principal.message}
-                    </p>
-                    <span style={{ position: 'absolute', bottom: '-30px', right: '-10px', fontSize: '3rem', color: 'rgba(0, 86, 179, 0.2)' }}>"</span>
-                  </div>
-                )}
+        {/* LEADERSHIP HIERARCHY */}
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          
+          {/* 1. Singular Principal Block */}
+          {leadership.principal && (
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
+              <ProfileCard person={leadership.principal} roleLabel="Principal" isLarge={true} />
+            </div>
+          )}
+
+          {/* 2. Kurpar Vice Principals Block */}
+          {leadership.kurparVPs.length > 0 && (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '40px' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#111', textShadow: '0 2px 10px rgba(255,255,255,0.8)' }}>Vice Principals (কুরপাড় শাখা)</h3>
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
+                {leadership.kurparVPs.map((vp, idx) => (
+                  <ProfileCard key={`k-${idx}`} person={vp} roleLabel="Vice Principal" isLarge={false} />
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* 3. Moktarpara Vice Principals Block */}
+          {leadership.moktarparaVPs.length > 0 && (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#111', textShadow: '0 2px 10px rgba(255,255,255,0.8)' }}>Vice Principals (মোক্তারপাড়া শাখা)</h3>
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
+                {leadership.moktarparaVPs.map((vp, idx) => (
+                  <ProfileCard key={`m-${idx}`} person={vp} roleLabel="Vice Principal" isLarge={false} />
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
 
         {/* About Us Section */}
         <div style={{ 
@@ -222,7 +281,7 @@ function Home() {
 
       </div>
 
-      {/* NEW: Dedicated Home Footer */}
+      {/* Dedicated Home Footer */}
       <div style={{ 
         width: '100%', 
         background: 'rgba(0, 0, 0, 0.75)', 

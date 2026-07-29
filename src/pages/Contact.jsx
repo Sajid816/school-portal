@@ -112,8 +112,12 @@ function Contact() {
 
   return (
     <div style={{ padding: '40px 20px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: '100vh', boxSizing: 'border-box', backgroundImage: 'url("/pictures/contact.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
-      <h1>Contact Us</h1>
-      <p style={{ marginBottom: '30px', color: '#ddd' }}>Get in touch with our institutional campus branches</p>
+      
+      {/* FIXED READABILITY: Title wrapped in a glass box */}
+      <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(10px)', padding: '20px 50px', borderRadius: '16px', textAlign: 'center', marginBottom: '40px', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+        <h1 style={{ margin: '0 0 10px 0', color: '#111', fontSize: '2.5rem' }}>Contact Us</h1>
+        <p style={{ margin: 0, color: '#444', fontWeight: 'bold', fontSize: '1.1rem' }}>Get in touch with our institutional campus branches</p>
+      </div>
 
       {/* ADMIN CONTROLS WORKSPACE CONTAINER */}
       {isAdmin && (
