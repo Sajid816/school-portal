@@ -308,10 +308,10 @@ function Home() {
         boxShadow: '0 -10px 30px rgba(0,0,0,0.15)'
       }}>
         
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '60px', width: '100%', maxWidth: '1100px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '50px', width: '100%', maxWidth: '1000px' }}>
           
           {/* Phone Information */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#80bfff', letterSpacing: '1px', textTransform: 'uppercase' }}>Contact Us</h4>
             {footerData.kurparPhone && (
               <div style={{ fontSize: '1.1rem' }}>
@@ -325,58 +325,36 @@ function Home() {
             )}
           </div>
 
-          {/* Large Social & Email Buttons */}
-          <div style={{ display: 'flex', gap: '25px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            
-            {/* Facebook Button */}
+          {/* Social & Email Buttons */}
+          <div style={{ display: 'flex', gap: '25px', alignItems: 'center' }}>
             {footerData.facebook && (
               <a href={footerData.facebook} target="_blank" rel="noreferrer" 
                  style={{ 
                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                   width: '110px', height: '75px', 
-                   background: 'linear-gradient(135deg, #e6f0ff 0%, #ffffff 100%)', 
-                   borderRadius: '20px', border: '2px solid #b3d4ff',
-                   transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                   width: '55px', height: '55px', background: 'rgba(255, 255, 255, 0.1)', 
+                   borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)',
+                   transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
                  }} 
-                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }} 
-                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0px) scale(1)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
+                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'; }} 
+                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
               >
-                <img src="/pictures/FB.png" alt="Facebook" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
+                <img src="/pictures/FB.png" alt="Facebook" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
               </a>
             )}
-
-            {/* YouTube Button */}
-            <a href="https://youtube.com/@holychildacademy4192?si=ATYqtBrjzKKZG7pG" target="_blank" rel="noreferrer" 
-               style={{ 
-                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                 width: '110px', height: '75px', 
-                 background: 'linear-gradient(135deg, #ffe6e6 0%, #ffffff 100%)', 
-                 borderRadius: '20px', border: '2px solid #ffb3b3',
-                 transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
-               }} 
-               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }} 
-               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0px) scale(1)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
-            >
-              <img src="/pictures/youtube.png" alt="YouTube" style={{ width: '50px', height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display='none'} />
-            </a>
-
-            {/* Email Button */}
             {footerData.email && (
               <a href={`mailto:${footerData.email}`}
                  style={{ 
                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                   width: '110px', height: '75px', 
-                   background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)', 
-                   borderRadius: '20px', border: '2px solid #cccccc',
-                   transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                   width: '55px', height: '55px', background: 'rgba(255, 255, 255, 0.1)', 
+                   borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)',
+                   transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
                  }} 
-                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }} 
-                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0px) scale(1)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
+                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'; }} 
+                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
               >
-                <img src="/pictures/mail.png" alt="Email" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
+                <img src="/pictures/mail.png" alt="Email" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
               </a>
             )}
-
           </div>
         </div>
 
