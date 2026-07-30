@@ -12,10 +12,8 @@ function Home() {
     moktarparaVPs: []
   });
 
-  // Check window object: Resets on page reload, but remembers if navigating via navbar
-  const [showSplash, setShowSplash] = useState(() => {
-    return !window.hasShownSplash;
-  });
+  // Splash screen state reverted back to old logic
+  const [showSplash, setShowSplash] = useState(true);
   
   // New state for the dedicated footer
   const [footerData, setFooterData] = useState({
@@ -25,16 +23,13 @@ function Home() {
     email: ''
   });
 
-  // Splash Screen Timer (Runs for 2.5s)
+  // Splash Screen Timer (Restored and shortened to 2.5s)
   useEffect(() => {
-    if (showSplash) {
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-        window.hasShownSplash = true; // Mark as shown for this React session
-      }, 2500); 
-      return () => clearTimeout(timer);
-    }
-  }, [showSplash]);
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500); 
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch Ticker
   useEffect(() => {
@@ -153,7 +148,7 @@ function Home() {
     </div>
   );
 
-  // 1. SPLASH SCREEN RENDER
+  // 1. SPLASH SCREEN RENDER (Fully Restored & Accelerated)
   if (showSplash) {
     return (
       <div style={{ 
@@ -171,12 +166,6 @@ function Home() {
       }}>
         <style>
           {`
-            @keyframes logoReveal {
-              0% { opacity: 0; filter: blur(10px); transform: scale(0.9); }
-              20% { opacity: 1; filter: blur(0px); transform: scale(1); }
-              80% { opacity: 1; filter: blur(0px); transform: scale(1); }
-              100% { opacity: 0; filter: blur(10px); transform: scale(1.1); }
-            }
             @keyframes fadeInOut {
               0% { opacity: 0; }
               15% { opacity: 1; }
@@ -190,7 +179,7 @@ function Home() {
           padding: '50px 80px', 
           textAlign: 'center', 
           background: 'rgba(255, 255, 255, 0.85)',
-          animation: 'fadeInOut 2.5s ease-in-out forwards',
+          animation: 'fadeInOut 2.5s ease-in-out',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -199,11 +188,7 @@ function Home() {
           <img 
             src="/pictures/school logo.png" 
             alt="Holy Child Academy Logo" 
-            style={{ 
-              width: '140px', 
-              height: 'auto',
-              animation: 'logoReveal 2.5s ease-in-out forwards'
-            }} 
+            style={{ width: '140px', height: 'auto' }} 
           />
           <h1 style={{ color: '#111', fontSize: '3.5rem', margin: '0' }}>Welcome to Holy Child Academy</h1>
         </div>
@@ -308,7 +293,7 @@ function Home() {
         boxShadow: '0 -10px 30px rgba(0,0,0,0.15)'
       }}>
         
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '50px', width: '100%', maxWidth: '1000px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '60px', width: '100%', maxWidth: '1100px' }}>
           
           {/* Phone Information */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'center', justifyContent: 'center' }}>
@@ -333,7 +318,7 @@ function Home() {
               <a href={footerData.facebook} target="_blank" rel="noreferrer" 
                  style={{ 
                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                   width: '110px', height: '75px', 
+                   width: '120px', height: '80px', 
                    background: 'linear-gradient(135deg, #e6f0ff 0%, #ffffff 100%)', 
                    borderRadius: '20px', border: '2px solid #b3d4ff',
                    transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
@@ -345,11 +330,11 @@ function Home() {
               </a>
             )}
 
-            {/* YouTube Button */}
+            {/* YouTube Button (Using an inline SVG so it never fails to load) */}
             <a href="https://youtube.com/@holychildacademy4192?si=ATYqtBrjzKKZG7pG" target="_blank" rel="noreferrer" 
                style={{ 
                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                 width: '110px', height: '75px', 
+                 width: '120px', height: '80px', 
                  background: 'linear-gradient(135deg, #ffe6e6 0%, #ffffff 100%)', 
                  borderRadius: '20px', border: '2px solid #ffb3b3',
                  transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
@@ -357,7 +342,9 @@ function Home() {
                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }} 
                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0px) scale(1)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
             >
-              <img src="/pictures/youtube.png" alt="YouTube" style={{ width: '60px', height: '60px', objectFit: 'contain' }} onError={(e) => e.target.style.display='none'} />
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="#ff0000">
+                <path d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.86-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" />
+              </svg>
             </a>
 
             {/* Email Button */}
@@ -365,7 +352,7 @@ function Home() {
               <a href={`mailto:${footerData.email}`}
                  style={{ 
                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                   width: '110px', height: '75px', 
+                   width: '120px', height: '80px', 
                    background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)', 
                    borderRadius: '20px', border: '2px solid #cccccc',
                    transition: 'all 0.3s ease', boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
@@ -373,7 +360,7 @@ function Home() {
                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.3)'; }} 
                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0px) scale(1)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; }}
               >
-                <img src="/pictures/mail.png" alt="Email" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
+                <img src="/pictures/mail.png" alt="Email" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
               </a>
             )}
 
